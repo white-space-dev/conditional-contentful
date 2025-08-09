@@ -14,7 +14,7 @@ describe('Config Screen component', () => {
     const { getByText } = render(<ConfigScreen />);
 
     await waitFor(() => {
-      expect(getByText('Conditional Fields Configuration')).toBeInTheDocument();
+      expect(getByText('Conditional Fields')).toBeInTheDocument();
     });
   });
 });

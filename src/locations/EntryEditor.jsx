@@ -10,9 +10,13 @@ const EntryEditor = () => {
   const [rules, setRules] = useState([]);
   const [controllerValues, setControllerValues] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Memoize the field visibility calculation.
   const fieldVisibility = useMemo(() => {
+    if (!sdk.contentType) {
+      return {};
+    }
     const visibility = {};
     const toAutoSet = [];
 
@@ -61,14 +65,6 @@ const EntryEditor = () => {
         if (!visibility[target]) return;
 
         if (matches) {
-          visibility[target].isVisible = true;
-          if (rule.widgetId) {
-            visibility[target].widgetId = rule.widgetId;
-          }
-          if (rule.setValue !== undefined && rule.setValue !== '') {
-            toAutoSet.push({ fieldId: target, value: rule.setValue });
-          }
-        } else {
           visibility[target].isVisible = false;
           if (rule.showMessage !== false && rule.message) {
             visibility[target].message = rule.message;
@@ -76,6 +72,14 @@ const EntryEditor = () => {
           if (rule.clearOnHide) {
             const field = sdk.entry.fields[target];
             if (field) field.setValue(null);
+          }
+        } else {
+          visibility[target].isVisible = true;
+          if (rule.widgetId) {
+            visibility[target].widgetId = rule.widgetId;
+          }
+          if (rule.setValue !== undefined && rule.setValue !== '') {
+            toAutoSet.push({ fieldId: target, value: rule.setValue });
           }
         }
       });
@@ -92,36 +96,40 @@ const EntryEditor = () => {
 
     return visibility;
   }, [controllerValues, rules, sdk]);
-
+console.log("🚀 ~ fieldVisibility:", fieldVisibility);
   // Load rules and initialize controller values.
   useEffect(() => {
     const init = async () => {
-      const params = await sdk.app.getParameters();
-      console.log("🚀 ~ init ~ params:", params)
-      if (params && params.rules) {
-        const parsed = JSON.parse(params.rules);
-        if (Array.isArray(parsed)) {
-          const configuredCt = params.contentTypeId;
-          const currentCt = sdk.contentType?.sys?.id;
-          if (!configuredCt || configuredCt === currentCt) {
-            setRules(parsed);
+      try {
+        const params = await sdk.app.getParameters();
+        console.log("🚀 ~ init ~ params:", params)
+        if (params && params.rules) {
+          const parsed = JSON.parse(params.rules);
+          console.log("🚀 ~ init ~ parsed:", parsed)
+          if (Array.isArray(parsed)) {
+            const currentCt = sdk.contentType?.sys?.id;
+            const filteredRules = parsed.filter(rule => rule.contentType === currentCt);
+            setRules(filteredRules);
 
-            // Initialize controller values after rules are loaded.
-            const controllerIds = new Set();
-            parsed.forEach((rule) => {
-              rule.conditions.forEach((cond) => {
-                if (cond.field) controllerIds.add(cond.field);
+              // Initialize controller values after rules are loaded.
+              const controllerIds = new Set();
+              filteredRules.forEach((rule) => {
+                rule.conditions.forEach((cond) => {
+                  if (cond.field) controllerIds.add(cond.field);
+                });
               });
-            });
 
-            const initialValues = {};
-            controllerIds.forEach((id) => {
-              const field = sdk.entry.fields[id];
-              if (field) initialValues[id] = field.getValue();
-            });
-            setControllerValues(initialValues);
+              const initialValues = {};
+              controllerIds.forEach((id) => {
+                const field = sdk.entry.fields[id];
+                if (field) initialValues[id] = field.getValue();
+              });
+              setControllerValues(initialValues);
           }
         }
+      } catch (error) {
+        console.error("Error fetching app parameters:", error);
+        setError("Error fetching app parameters. Please make sure the app is installed correctly.");
       }
       setLoading(false);
     };
@@ -157,6 +165,10 @@ const EntryEditor = () => {
     return <p>Loading editor…</p>;
   }
 
+  if (error) {
+    return <Note variant="negative">{error}</Note>;
+  }
+
   return (
     <div style={{ padding: '16px' }}>
       {sdk.contentType.fields.map((fieldDef) => {
@@ -164,11 +176,7 @@ const EntryEditor = () => {
         const visibility = fieldVisibility[fieldId];
 
         if (!visibility || !visibility.isVisible) {
-          return (
-            <div key={fieldId} style={{ marginBottom: '16px' }}>
-              {visibility?.message && <Note variant="warning">{visibility.message}</Note>}
-            </div>
-          );
+          return null;
         }
 
         return (
