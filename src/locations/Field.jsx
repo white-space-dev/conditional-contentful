@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAutoResizer, useSDK } from '@contentful/react-apps-toolkit';
 import { Field as ContentfulField } from '@contentful/default-field-editors';
+import CustomColorPicker from '../components/CustomColorPicker';
 
 const Field = () => {
   const sdk = useSDK();
