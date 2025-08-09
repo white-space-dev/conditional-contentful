@@ -91,7 +91,11 @@ const Field = () => {
     };
   }, [rules, sdk.entry.fields]);
 
-  return isVisible ? <ContentfulField sdk={sdk} widgetId={sdk.parameters.instance.intendedAppearance} /> : null;
+  if (sdk.parameters.instance.intendedAppearance === 'customColorPicker') {
+    return isVisible ? <CustomColorPicker sdk={sdk} /> : null;
+  } else {
+    return isVisible ? <ContentfulField sdk={sdk} widgetId={sdk.parameters.instance.intendedAppearance} /> : null;
+  }
 };
 
 export default Field;
