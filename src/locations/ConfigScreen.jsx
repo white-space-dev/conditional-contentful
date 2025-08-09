@@ -24,11 +24,9 @@ const ConfigScreen = () => {
   const [rules, setRules] = useState([]);
   const [editingRuleIndex, setEditingRuleIndex] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  console.log("🚀 ~ ConfigScreen ~ rules:", rules)
 
   const onConfigure = useCallback(async () => {
     const parameters = await sdk.app.getParameters();
-    console.log("🚀 ~ ConfigScreen ~ parameters:", parameters)
     if (parameters && parameters.rules) {
       setRules(JSON.parse(parameters.rules));
       setSelectedContentType(parameters.contentTypeId);
