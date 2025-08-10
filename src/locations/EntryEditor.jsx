@@ -96,16 +96,13 @@ const EntryEditor = () => {
 
     return visibility;
   }, [controllerValues, rules, sdk]);
-console.log("🚀 ~ fieldVisibility:", fieldVisibility);
   // Load rules and initialize controller values.
   useEffect(() => {
     const init = async () => {
       try {
         const params = await sdk.app.getParameters();
-        console.log("🚀 ~ init ~ params:", params)
         if (params && params.rules) {
           const parsed = JSON.parse(params.rules);
-          console.log("🚀 ~ init ~ parsed:", parsed)
           if (Array.isArray(parsed)) {
             const currentCt = sdk.contentType?.sys?.id;
             const filteredRules = parsed.filter(rule => rule.contentType === currentCt);

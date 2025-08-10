@@ -5,8 +5,6 @@ import CustomColorPicker from '../components/CustomColorPicker';
 
 const Field = () => {
   const sdk = useSDK();
-  // console.log('sdk', JSON.stringify(sdk, null, 2))
-  console.log('sdk.parameters.instance.placeholder', sdk.parameters.instance.intendedAppearance)
   useAutoResizer();
   const [rules, setRules] = useState([]);
   const [controllerValues, setControllerValues] = useState({});

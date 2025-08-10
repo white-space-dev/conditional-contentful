@@ -8,8 +8,7 @@ const pickers = {
 
 const CustomColorPicker = ({ sdk }) => {
   const [pickerType, setPickerType] = useState("SketchPicker");
-  const currentColor = sdk.field.getValue() || "#FFFFFF"; // Default to white if no value #21d363cc
-  console.log('sdk.field.getValue()', sdk.field.getValue())
+  const currentColor = sdk.field.getValue() || "##ffffffff"; // Default to white if no value
 
     // Helper to parse #RRGGBBAA
     const hexAToRgba = (hex) => {
