@@ -10,35 +10,20 @@ const CustomColorPicker = ({ sdk }) => {
   const [pickerType, setPickerType] = useState("SketchPicker");
   const currentColor = sdk.field.getValue() || "#FFFFFF"; // Default to white if no value #21d363cc
   console.log('sdk.field.getValue()', sdk.field.getValue())
-  
-  // Helper to convert hex (#RRGGBB or #RGB) to RGBA
-  const hexToRgba = (hex) => {
-    let c = hex.replace("#", "");
-    if (c.length === 3) {
-      c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
-    }
-    if (c.length !== 6) {
-      return { r: 255, g: 255, b: 255, a: 1 };
-    }
-    const r = parseInt(c.slice(0, 2), 16);
-    const g = parseInt(c.slice(2, 4), 16);
-    const b = parseInt(c.slice(4, 6), 16);
-    return { r, g, b, a: 1 };
-  };
 
-  const [color, setColor] = useState(hexToRgba(currentColor));
+    // Helper to parse #RRGGBBAA
+    const hexAToRgba = (hex) => {
+      if (!/^#([\da-fA-F]{8})$/.test(hex)) return color;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const a = parseInt(hex.slice(7, 9), 16) / 255;
+      return { r, g, b, a };
+    };
+
+  const [color, setColor] = useState(hexAToRgba(currentColor));
   const [inputValue, setInputValue] = useState(currentColor);
   const PickerComponent = pickers[pickerType];
-
-  // Helper to parse #RRGGBBAA
-  const hexAToRgba = (hex) => {
-    if (!/^#([\da-fA-F]{8})$/.test(hex)) return color;
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    const a = parseInt(hex.slice(7, 9), 16) / 255;
-    return { r, g, b, a };
-  };
 
   // Helper to convert RGBA to #RRGGBBAA
   const rgbaToHexA = ({ r, g, b, a }) => {
