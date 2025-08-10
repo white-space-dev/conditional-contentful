@@ -1,7 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useAutoResizer, useSDK } from '@contentful/react-apps-toolkit';
 import { Field as ContentfulField } from '@contentful/default-field-editors';
-import CustomColorPicker from '../components/CustomColorPicker';
+import NotVisibleMessage from '../components/NotVisibleMessage';
+
+// Lazy-load CustomColorPicker to enable a loader until it is ready
+const LazyCustomColorPicker = React.lazy(() => import("../components/CustomColorPicker"));
+
+// Minimal Loader fallback shown while the component/code-split chunk loads
+const Loader = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+    Loading…
+  </div>
+);
 
 const Field = () => {
   const sdk = useSDK();
@@ -91,9 +101,19 @@ const Field = () => {
   }, [rules, sdk.entry.fields]);
 
   if (sdk.parameters.instance.intendedAppearance === 'customColorPicker') {
-    return isVisible ? <CustomColorPicker sdk={sdk} /> : null;
+    return isVisible ? (
+      <Suspense fallback={<Loader />}>
+        <LazyCustomColorPicker sdk={sdk} />
+      </Suspense>
+    ) : (
+      <NotVisibleMessage />
+    );
   } else {
-    return isVisible ? <ContentfulField sdk={sdk} widgetId={sdk.parameters.instance.intendedAppearance} /> : null;
+    return isVisible ? (
+      <ContentfulField sdk={sdk} widgetId={sdk.parameters.instance.intendedAppearance} />
+    ) : (
+      <NotVisibleMessage />
+    );
   }
 };
 
