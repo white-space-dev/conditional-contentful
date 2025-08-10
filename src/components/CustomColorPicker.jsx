@@ -8,8 +8,9 @@ const pickers = {
 
 const CustomColorPicker = ({ sdk }) => {
   const [pickerType, setPickerType] = useState("SketchPicker");
-  const currentColor = sdk.field.getValue() || "#FFFFFF"; // Default to white if no value
-
+  const currentColor = sdk.field.getValue() || "#FFFFFF"; // Default to white if no value #21d363cc
+  console.log('sdk.field.getValue()', sdk.field.getValue())
+  
   // Helper to convert hex (#RRGGBB or #RGB) to RGBA
   const hexToRgba = (hex) => {
     let c = hex.replace("#", "");
