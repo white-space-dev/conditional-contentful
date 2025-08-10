@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { BlockPicker, ChromePicker, SketchPicker } from "react-color";
+import { BlockPicker, SketchPicker } from "react-color";
 
 const pickers = {
   BlockPicker,
-  ChromePicker,
   SketchPicker,
 };
 
