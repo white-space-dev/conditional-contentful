@@ -12,7 +12,7 @@ const CustomColorPicker = ({ sdk }) => {
 
     // Helper to parse #RRGGBBAA
     const hexAToRgba = (hex) => {
-      if (!/^#([\da-fA-F]{8})$/.test(hex)) return color;
+      if (!/^#([\da-fA-F]{8})$/.test(hex)) return hex;
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
