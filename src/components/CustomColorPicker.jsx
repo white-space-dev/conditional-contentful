@@ -32,6 +32,7 @@ const CustomColorPicker = ({ sdk }) => {
   };
 
   useEffect(() => {
+    if (color.r === undefined) return;
     setInputValue(rgbaToHexA(color));
   }, [color]);
 
