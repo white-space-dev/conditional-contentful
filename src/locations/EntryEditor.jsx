@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSDK, useAutoResizer } from '@contentful/react-apps-toolkit';
 import { Field } from '@contentful/default-field-editors';
-import { Note } from '@contentful/f36-components';
+import { Note, HelpText } from '@contentful/f36-components';
 
 const EntryEditor = () => {
   const sdk = useSDK();
   useAutoResizer();
 
   const [rules, setRules] = useState([]);
+  const [helpTextRules, setHelpTextRules] = useState([]);
   const [controllerValues, setControllerValues] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,9 +27,11 @@ const EntryEditor = () => {
         isVisible: true,
         message: '',
         widgetId: undefined,
+        helpText: '',
       };
     });
 
+    // Process show/hide rules
     rules.forEach((rule) => {
       const results = rule.conditions.map((cond) => {
         const actual = controllerValues[cond.field];
@@ -85,6 +88,45 @@ const EntryEditor = () => {
       });
     });
 
+    // Process help text rules separately
+    helpTextRules.forEach((helpTextRule) => {
+      const results = helpTextRule.conditions.map((cond) => {
+        const actual = controllerValues[cond.field];
+        const expected = cond.value;
+        switch (cond.operator) {
+          case 'eq':
+            return String(actual) === expected;
+          case '!=':
+            return String(actual) !== expected;
+          case '>': {
+            const a = parseFloat(actual);
+            const b = parseFloat(expected);
+            return !isNaN(a) && !isNaN(b) ? a > b : String(actual) > expected;
+          }
+          case '<': {
+            const a = parseFloat(actual);
+            const b = parseFloat(expected);
+            return !isNaN(a) && !isNaN(b) ? a < b : String(actual) < expected;
+          }
+          case 'contains':
+            if (Array.isArray(actual)) return actual.includes(expected);
+            return String(actual || '').includes(expected);
+          case 'notContains':
+            if (Array.isArray(actual)) return !actual.includes(expected);
+            return !String(actual || '').includes(expected);
+          default:
+            return false;
+        }
+      });
+
+      const matches = helpTextRule.logic === 'all' ? results.every(Boolean) : results.some(Boolean);
+
+      // Apply help text to the target field if condition matches
+      if (matches && helpTextRule.targetField && visibility[helpTextRule.targetField]) {
+        visibility[helpTextRule.targetField].helpText = helpTextRule.helpText;
+      }
+    });
+
     // Apply auto-set operations.
     toAutoSet.forEach(({ fieldId, value }) => {
       const field = sdk.entry.fields[fieldId];
@@ -95,38 +137,57 @@ const EntryEditor = () => {
     });
 
     return visibility;
-  }, [controllerValues, rules, sdk]);
-console.log("🚀 ~ fieldVisibility:", fieldVisibility);
+  }, [controllerValues, rules, helpTextRules, sdk]);
+
   // Load rules and initialize controller values.
   useEffect(() => {
     const init = async () => {
       try {
         const params = await sdk.app.getParameters();
-        console.log("🚀 ~ init ~ params:", params)
+        
+        const currentCt = sdk.contentType?.sys?.id;
+        const controllerIds = new Set();
+
+        // Load show/hide rules
         if (params && params.rules) {
           const parsed = JSON.parse(params.rules);
-          console.log("🚀 ~ init ~ parsed:", parsed)
           if (Array.isArray(parsed)) {
-            const currentCt = sdk.contentType?.sys?.id;
             const filteredRules = parsed.filter(rule => rule.contentType === currentCt);
             setRules(filteredRules);
 
-              // Initialize controller values after rules are loaded.
-              const controllerIds = new Set();
-              filteredRules.forEach((rule) => {
-                rule.conditions.forEach((cond) => {
-                  if (cond.field) controllerIds.add(cond.field);
-                });
+            // Collect controller field IDs
+            filteredRules.forEach((rule) => {
+              rule.conditions.forEach((cond) => {
+                if (cond.field) controllerIds.add(cond.field);
               });
-
-              const initialValues = {};
-              controllerIds.forEach((id) => {
-                const field = sdk.entry.fields[id];
-                if (field) initialValues[id] = field.getValue();
-              });
-              setControllerValues(initialValues);
+            });
           }
         }
+
+        // Load help text rules
+        if (params && params.helpTextRules) {
+          const parsedHelpText = JSON.parse(params.helpTextRules);
+          if (Array.isArray(parsedHelpText)) {
+            const filteredHelpTextRules = parsedHelpText.filter(rule => rule.contentType === currentCt);
+            setHelpTextRules(filteredHelpTextRules);
+
+            // Collect controller field IDs from help text rules
+            filteredHelpTextRules.forEach((rule) => {
+              rule.conditions.forEach((cond) => {
+                if (cond.field) controllerIds.add(cond.field);
+              });
+            });
+          }
+        }
+
+        // Initialize controller values
+        const initialValues = {};
+        controllerIds.forEach((id) => {
+          const field = sdk.entry.fields[id];
+          if (field) initialValues[id] = field.getValue();
+        });
+        setControllerValues(initialValues);
+
       } catch (error) {
         console.error("Error fetching app parameters:", error);
         setError("Error fetching app parameters. Please make sure the app is installed correctly.");
@@ -139,7 +200,16 @@ console.log("🚀 ~ fieldVisibility:", fieldVisibility);
   // Register listeners for controlling field changes.
   useEffect(() => {
     const controllerIds = new Set();
+    
+    // Collect from show/hide rules
     rules.forEach((rule) => {
+      rule.conditions.forEach((cond) => {
+        if (cond.field) controllerIds.add(cond.field);
+      });
+    });
+
+    // Collect from help text rules
+    helpTextRules.forEach((rule) => {
       rule.conditions.forEach((cond) => {
         if (cond.field) controllerIds.add(cond.field);
       });
@@ -159,7 +229,7 @@ console.log("🚀 ~ fieldVisibility:", fieldVisibility);
     return () => {
       unregisters.forEach((fn) => fn());
     };
-  }, [rules, sdk]);
+  }, [rules, helpTextRules, sdk]);
 
   if (loading) {
     return <p>Loading editor…</p>;
@@ -182,6 +252,11 @@ console.log("🚀 ~ fieldVisibility:", fieldVisibility);
         return (
           <div key={fieldId} style={{ marginBottom: '16px' }}>
             <Field sdk={{ field: sdk.entry.fields[fieldId] }} widgetId={visibility.widgetId} />
+            {visibility.helpText && (
+              <HelpText style={{ marginTop: '8px' }}>
+                {visibility.helpText}
+              </HelpText>
+            )}
           </div>
         );
       })}
