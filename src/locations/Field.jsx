@@ -100,6 +100,10 @@ const Field = () => {
     };
   }, [rules, sdk.entry.fields]);
 
+  const widgetId = sdk.parameters.instance.intendedAppearance === 'advanced' 
+  ? sdk.parameters.instance.intendedAppearance2 
+  : sdk.parameters.instance.intendedAppearance;
+
   if (sdk.parameters.instance.intendedAppearance === 'customColorPicker') {
     return isVisible ? (
       <Suspense fallback={<Loader />}>
@@ -110,7 +114,7 @@ const Field = () => {
     );
   } else {
     return isVisible ? (
-      <ContentfulField sdk={sdk} widgetId={sdk.parameters.instance.intendedAppearance} />
+      <ContentfulField sdk={sdk} widgetId={widgetId} />
     ) : (
       <NotVisibleMessage />
     );
