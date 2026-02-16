@@ -272,13 +272,31 @@ const ConfigScreen = () => {
         return false; // Prevent save
       }
 
+      // Collect all content types that have rules or help text rules.
+      const contentTypesWithRules = new Set();
+      rules.forEach((rule) => {
+        if (rule.contentType) contentTypesWithRules.add(rule.contentType);
+      });
+      helpTextRules.forEach((rule) => {
+        if (rule.contentType) contentTypesWithRules.add(rule.contentType);
+      });
+
+      // Build EditorInterface: assign EntryEditor for content types with rules.
+      const editorInterface = { ...currentState?.EditorInterface };
+      contentTypesWithRules.forEach((ctId) => {
+        editorInterface[ctId] = {
+          ...editorInterface[ctId],
+          editor: true,
+        };
+      });
+
       return {
         parameters: {
           rules: JSON.stringify(rules),
           helpTextRules: JSON.stringify(helpTextRules),
           contentTypeId: selectedContentType,
         },
-        targetState: { EditorInterface: { ...currentState?.EditorInterface } },
+        targetState: { EditorInterface: editorInterface },
       };
     });
   }, [sdk.app, rules, helpTextRules, selectedContentType]);
@@ -315,7 +333,6 @@ const ConfigScreen = () => {
           <Table.Row>
             <Table.Cell>Content Type</Table.Cell>
             <Table.Cell>Controlling Field</Table.Cell>
-            <Table.Cell>Operator</Table.Cell>
             <Table.Cell>Value</Table.Cell>
             <Table.Cell>Target Fields</Table.Cell>
             <Table.Cell>Actions</Table.Cell>
@@ -331,7 +348,6 @@ const ConfigScreen = () => {
                 }
               </Table.Cell>
               <Table.Cell>{rule.conditions[0].field}</Table.Cell>
-              <Table.Cell>{rule.conditions[0].operator}</Table.Cell>
               <Table.Cell>{rule.conditions[0].value}</Table.Cell>
               <Table.Cell>{rule.targets.join(", ")}</Table.Cell>
               <Table.Cell>
@@ -355,62 +371,64 @@ const ConfigScreen = () => {
       </Button>
       {showForm && (
         <div style={{ marginTop: "20px", padding: "20px", border: "1px solid #ccc", borderRadius: "4px" }}>
-          <Subheading>Add/Edit Show/Hide Rule</Subheading>
-          <FormControl>
-            <FormControl.Label>Content Type</FormControl.Label>
-            <Select
-              value={selectedContentType}
-              onChange={(e) => setSelectedContentType(e.target.value)}
-            >
-              <Select.Option value="">Select a content type</Select.Option>
-              {contentTypes.map((contentType) => (
-                <Select.Option
-                  key={contentType.sys.id}
-                  value={contentType.sys.id}
-                >
-                  {contentType.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <FormControl.Label>Field to watch</FormControl.Label>
-            <Select
-              value={selectedField?.id}
-              onChange={(e) => {
-                const field = fields.find((f) => f.id === e.target.value);
-                setSelectedField(field);
-              }}
-            >
-              <Select.Option value="">Select a field</Select.Option>
-              {fields.map((field) => (
-                <Select.Option key={field.id} value={field.id}>
-                  {field.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <FormControl.Label>Value to match</FormControl.Label>
-            {valueOptions.length > 0 ? (
-              <Select value={value} onChange={(e) => setValue(e.target.value)}>
-                <Select.Option value="">Select a value</Select.Option>
-                {valueOptions.map((option) => (
-                  <Select.Option key={option} value={option}>
-                    {option}
+          <Subheading>Add/Edit Hide Rule</Subheading>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+            <FormControl style={{ flex: 1 }}>
+              <FormControl.Label>Content Type</FormControl.Label>
+              <Select
+                value={selectedContentType}
+                onChange={(e) => setSelectedContentType(e.target.value)}
+              >
+                <Select.Option value="">Select a content type</Select.Option>
+                {contentTypes.map((contentType) => (
+                  <Select.Option
+                    key={contentType.sys.id}
+                    value={contentType.sys.id}
+                  >
+                    {contentType.name}
                   </Select.Option>
                 ))}
               </Select>
-            ) : (
-              <TextInput
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Enter value to match"
-              />
-            )}
-          </FormControl>
+            </FormControl>
+            <FormControl style={{ flex: 1 }}>
+              <FormControl.Label>Field to watch</FormControl.Label>
+              <Select
+                value={selectedField?.id}
+                onChange={(e) => {
+                  const field = fields.find((f) => f.id === e.target.value);
+                  setSelectedField(field);
+                }}
+              >
+                <Select.Option value="">Select a field</Select.Option>
+                {fields.map((field) => (
+                  <Select.Option key={field.id} value={field.id}>
+                    {field.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl style={{ flex: 1 }}>
+              <FormControl.Label>Value to match</FormControl.Label>
+              {valueOptions.length > 0 ? (
+                <Select value={value} onChange={(e) => setValue(e.target.value)}>
+                  <Select.Option value="">Select a value</Select.Option>
+                  {valueOptions.map((option) => (
+                    <Select.Option key={option} value={option}>
+                      {option}
+                    </Select.Option>
+                  ))}
+                </Select>
+              ) : (
+                <TextInput
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="Enter value to match"
+                />
+              )}
+            </FormControl>
+          </div>
           <FormControl>
-            <FormControl.Label>Fields to show/hide</FormControl.Label>
+            <FormControl.Label>Fields to hide</FormControl.Label>
             {fields.map((field) => (
               <Checkbox
                 key={field.id}
