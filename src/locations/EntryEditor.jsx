@@ -1,30 +1,30 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useSDK } from '@contentful/react-apps-toolkit';
-import { Field, FieldWrapper } from '@contentful/default-field-editors';
-import { FormControl } from '@contentful/f36-components';
+import React, { useEffect, useMemo, useState } from "react";
+import { useSDK } from "@contentful/react-apps-toolkit";
+import { Field, FieldWrapper } from "@contentful/default-field-editors";
+import { FormControl } from "@contentful/f36-components";
 
 const evaluateCondition = (actual, expected, operator) => {
   switch (operator) {
-    case 'eq':
+    case "eq":
       return String(actual) === expected;
-    case '!=':
+    case "!=":
       return String(actual) !== expected;
-    case '>': {
+    case ">": {
       const a = parseFloat(actual);
       const b = parseFloat(expected);
       return !isNaN(a) && !isNaN(b) ? a > b : String(actual) > expected;
     }
-    case '<': {
+    case "<": {
       const a = parseFloat(actual);
       const b = parseFloat(expected);
       return !isNaN(a) && !isNaN(b) ? a < b : String(actual) < expected;
     }
-    case 'contains':
+    case "contains":
       if (Array.isArray(actual)) return actual.includes(expected);
-      return String(actual || '').includes(expected);
-    case 'notContains':
+      return String(actual || "").includes(expected);
+    case "notContains":
       if (Array.isArray(actual)) return !actual.includes(expected);
-      return !String(actual || '').includes(expected);
+      return !String(actual || "").includes(expected);
     default:
       return false;
   }
@@ -46,18 +46,20 @@ const EntryEditor = () => {
       if (params && params.rules) {
         const parsed = JSON.parse(params.rules);
         if (Array.isArray(parsed)) {
-          setRules(parsed.filter(rule => rule.contentType === currentCt));
+          setRules(parsed.filter((rule) => rule.contentType === currentCt));
         }
       }
 
       if (params && params.helpTextRules) {
         const parsed = JSON.parse(params.helpTextRules);
         if (Array.isArray(parsed)) {
-          setHelpTextRules(parsed.filter(rule => rule.contentType === currentCt));
+          setHelpTextRules(
+            parsed.filter((rule) => rule.contentType === currentCt),
+          );
         }
       }
     } catch (err) {
-      console.error('Error parsing installation parameters:', err);
+      console.error("Error parsing installation parameters:", err);
     }
   }, [sdk]);
 
@@ -115,9 +117,14 @@ const EntryEditor = () => {
 
     rules.forEach((rule) => {
       const results = rule.conditions.map((cond) =>
-        evaluateCondition(controllerValues[cond.field], cond.value, cond.operator)
+        evaluateCondition(
+          controllerValues[cond.field],
+          cond.value,
+          cond.operator,
+        ),
       );
-      const matches = rule.logic === 'all' ? results.every(Boolean) : results.some(Boolean);
+      const matches =
+        rule.logic === "all" ? results.every(Boolean) : results.some(Boolean);
 
       rule.targets.forEach((target) => {
         if (!visibility[target]) return;
@@ -136,9 +143,14 @@ const EntryEditor = () => {
 
     helpTextRules.forEach((rule) => {
       const results = rule.conditions.map((cond) =>
-        evaluateCondition(controllerValues[cond.field], cond.value, cond.operator)
+        evaluateCondition(
+          controllerValues[cond.field],
+          cond.value,
+          cond.operator,
+        ),
       );
-      const matches = rule.logic === 'all' ? results.every(Boolean) : results.some(Boolean);
+      const matches =
+        rule.logic === "all" ? results.every(Boolean) : results.some(Boolean);
 
       if (matches && rule.targetField) {
         helpTexts[rule.targetField] = rule.helpText;
@@ -147,6 +159,18 @@ const EntryEditor = () => {
 
     return helpTexts;
   }, [controllerValues, helpTextRules]);
+
+  // Build a map of fieldId -> widgetId from the editor interface controls.
+  const widgetIdMap = useMemo(() => {
+    const map = {};
+    const controls = sdk.editor?.editorInterface?.controls || [];
+    controls.forEach((control) => {
+      if (control.fieldId && control.widgetId) {
+        map[control.fieldId] = control.widgetId;
+      }
+    });
+    return map;
+  }, [sdk.editor]);
 
   // Build a FieldAppSDK-compatible object for a given field.
   const buildFieldSdk = (fieldId) => {
@@ -164,7 +188,7 @@ const EntryEditor = () => {
   };
 
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: "16px" }}>
       {sdk.contentType.fields.map((fieldDef) => {
         const fieldId = fieldDef.id;
         const vis = fieldVisibility[fieldId];
@@ -175,9 +199,9 @@ const EntryEditor = () => {
         const helpText = fieldHelpTexts[fieldId];
 
         return (
-          <div key={fieldId} style={{ marginBottom: '16px' }}>
+          <div key={fieldId} style={{ marginBottom: "16px" }}>
             <FieldWrapper sdk={fieldSdk} name={fieldDef.name}>
-              <Field sdk={fieldSdk} />
+              <Field sdk={fieldSdk} widgetId={widgetIdMap[fieldId]} />{" "}
               {helpText && (
                 <FormControl.HelpText>{helpText}</FormControl.HelpText>
               )}

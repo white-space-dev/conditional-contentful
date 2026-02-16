@@ -11,6 +11,8 @@ import {
   Checkbox,
   Subheading,
   Note,
+  Badge,
+  Box,
 } from "@contentful/f36-components";
 import { useCMA, useSDK } from "@contentful/react-apps-toolkit";
 
@@ -30,7 +32,8 @@ const ConfigScreen = () => {
   const [helpTextRules, setHelpTextRules] = useState([]);
   const [helpTextContentType, setHelpTextContentType] = useState("");
   const [helpTextFields, setHelpTextFields] = useState([]);
-  const [helpTextControllingField, setHelpTextControllingField] = useState(undefined);
+  const [helpTextControllingField, setHelpTextControllingField] =
+    useState(undefined);
   const [helpTextEditingFieldId, setHelpTextEditingFieldId] = useState(null);
   const [helpTextValue, setHelpTextValue] = useState("");
   const [helpTextTargetField, setHelpTextTargetField] = useState("");
@@ -54,7 +57,6 @@ const ConfigScreen = () => {
     }
     sdk.app.setReady();
   }, [sdk.app]);
-
 
   useEffect(() => {
     onConfigure();
@@ -116,14 +118,25 @@ const ConfigScreen = () => {
   const validateBeforeSave = () => {
     // Validate rules
     for (const rule of rules) {
-      if (!rule.contentType || !rule.conditions[0]?.field || !rule.conditions[0]?.value || rule.targets.length === 0) {
+      if (
+        !rule.contentType ||
+        !rule.conditions[0]?.field ||
+        !rule.conditions[0]?.value ||
+        rule.targets.length === 0
+      ) {
         return "All rule fields must be filled. Please check your Show/Hide Rules.";
       }
     }
 
     // Validate help text rules
     for (const helpText of helpTextRules) {
-      if (!helpText.contentType || !helpText.conditions[0]?.field || !helpText.conditions[0]?.value || !helpText.targetField || !helpText.helpText) {
+      if (
+        !helpText.contentType ||
+        !helpText.conditions[0]?.field ||
+        !helpText.conditions[0]?.value ||
+        !helpText.targetField ||
+        !helpText.helpText
+      ) {
         return "All help text fields must be filled. Please check your Help Text Rules.";
       }
     }
@@ -132,7 +145,12 @@ const ConfigScreen = () => {
   };
 
   const handleSaveRule = () => {
-    if (!selectedContentType || !selectedField || !value || selectedTargets.length === 0) {
+    if (
+      !selectedContentType ||
+      !selectedField ||
+      !value ||
+      selectedTargets.length === 0
+    ) {
       setValidationError("Please fill in all fields before saving the rule.");
       return;
     }
@@ -187,16 +205,30 @@ const ConfigScreen = () => {
     setSelectedTargets([]);
   };
 
-   // Help Text handlers
+  // Help Text handlers
   const handleSaveHelpText = () => {
-    if (!helpTextContentType || !helpTextControllingField || !helpTextValue || !helpTextTargetField || !helpTextContent) {
-      setValidationError("Please fill in all fields before saving the help text.");
+    if (
+      !helpTextContentType ||
+      !helpTextControllingField ||
+      !helpTextValue ||
+      !helpTextTargetField ||
+      !helpTextContent
+    ) {
+      setValidationError(
+        "Please fill in all fields before saving the help text.",
+      );
       return;
     }
 
     const newHelpTextRule = {
       contentType: helpTextContentType,
-      conditions: [{ field: helpTextControllingField.id, operator: "eq", value: helpTextValue }],
+      conditions: [
+        {
+          field: helpTextControllingField.id,
+          operator: "eq",
+          value: helpTextValue,
+        },
+      ],
       targetField: helpTextTargetField,
       helpText: helpTextContent,
       logic: "all",
@@ -287,6 +319,7 @@ const ConfigScreen = () => {
         editorInterface[ctId] = {
           ...editorInterface[ctId],
           editor: true,
+          sidebar: { position: 0 },
         };
       });
 
@@ -312,291 +345,524 @@ const ConfigScreen = () => {
     [];
 
   return (
-    <div style={{ marginLeft: "20px", marginRight: "20px" }}>
-      <Heading>Conditional Fields</Heading>
-      <Paragraph>
-        Welcome to the Conditional Fields app! This app allows you to
-        conditionally show or hide fields in your content types.
-      </Paragraph>
+    <div style={{ maxWidth: "960px", margin: "0 auto", padding: "24px 32px" }}>
+      {/* Header */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #0059C8 0%, #0070E0 100%)",
+          borderRadius: "8px",
+          padding: "24px 32px",
+          marginBottom: "32px",
+          color: "#fff",
+        }}
+      >
+        <Heading style={{ color: "#fff", marginBottom: "8px" }}>
+          Conditional Fields
+        </Heading>
+        <Paragraph style={{ color: "rgba(255,255,255,0.85)", marginBottom: 0 }}>
+          Configure rules to conditionally hide fields and display help text
+          based on field values.
+        </Paragraph>
+      </div>
+
       {validationError && (
-        <Note variant="negative" style={{ marginBottom: "20px" }}>
+        <Note variant="negative" style={{ marginBottom: "24px" }}>
           {validationError}
         </Note>
       )}
 
-      {/* Show/Hide Rules Section */}
-      <Subheading style={{ marginTop: "24px", marginBottom: "16px" }}>
-        Show/Hide Rules
-      </Subheading>
-      <Table>
-        <Table.Head>
-          <Table.Row>
-            <Table.Cell>Content Type</Table.Cell>
-            <Table.Cell>Controlling Field</Table.Cell>
-            <Table.Cell>Value</Table.Cell>
-            <Table.Cell>Target Fields</Table.Cell>
-            <Table.Cell>Actions</Table.Cell>
-          </Table.Row>
-        </Table.Head>
-        <Table.Body>
-          {rules.map((rule, index) => (
-            <Table.Row key={index}>
-              <Table.Cell>
-                {
-                  contentTypes.find((ct) => ct.sys.id === rule.contentType)
-                    ?.name
-                }
-              </Table.Cell>
-              <Table.Cell>{rule.conditions[0].field}</Table.Cell>
-              <Table.Cell>{rule.conditions[0].value}</Table.Cell>
-              <Table.Cell>{rule.targets.join(", ")}</Table.Cell>
-              <Table.Cell>
-                <Button onClick={() => handleStartEdit(rule, index)}>
-                  Edit
-                </Button>
-                <Button
-                  onClick={() => handleDeleteRule(index)}
-                  style={{ marginLeft: "10px" }}
-                  variant="negative"
-                >
-                  Delete
-                </Button>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table>
-      <Button onClick={() => showEmptyForm()} style={{ marginTop: "10px" }}>
-        Add Show/Hide Rule
-      </Button>
-      {showForm && (
-        <div style={{ marginTop: "20px", padding: "20px", border: "1px solid #ccc", borderRadius: "4px" }}>
-          <Subheading>Add/Edit Hide Rule</Subheading>
-                    <div style={{ display: 'flex', gap: '16px' }}>
-            <FormControl style={{ flex: 1 }}>
-              <FormControl.Label>Content Type</FormControl.Label>
-              <Select
-                value={selectedContentType}
-                onChange={(e) => setSelectedContentType(e.target.value)}
-              >
-                <Select.Option value="">Select a content type</Select.Option>
-                {contentTypes.map((contentType) => (
-                  <Select.Option
-                    key={contentType.sys.id}
-                    value={contentType.sys.id}
+      {/* ── Hide Rules Section ── */}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #E5E5E5",
+          borderRadius: "8px",
+          padding: "24px",
+          marginBottom: "32px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "16px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Subheading marginBottom="none">Hide Rules</Subheading>
+            <Badge variant="secondary">{rules.length}</Badge>
+          </div>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => showEmptyForm()}
+          >
+            + Add Rule
+          </Button>
+        </div>
+
+        {rules.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "32px 16px",
+              color: "#8091A5",
+              background: "#F7F9FA",
+              borderRadius: "6px",
+            }}
+          >
+            <Paragraph style={{ color: "#8091A5", marginBottom: 0 }}>
+              No hide rules configured yet. Click "Add Rule" to get started.
+            </Paragraph>
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <Table>
+              <Table.Head style={{ background: "#F7F9FA" }}>
+                <Table.Row>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Content Type
+                  </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Controlling Field
+                  </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Value
+                  </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Target Fields
+                  </Table.Cell>
+                  <Table.Cell
+                    style={{
+                      fontWeight: 600,
+                      color: "#536171",
+                      width: "140px",
+                    }}
                   >
-                    {contentType.name}
-                  </Select.Option>
+                    Actions
+                  </Table.Cell>
+                </Table.Row>
+              </Table.Head>
+              <Table.Body>
+                {rules.map((rule, index) => (
+                  <Table.Row key={index}>
+                    <Table.Cell>
+                      {
+                        contentTypes.find(
+                          (ct) => ct.sys.id === rule.contentType,
+                        )?.name
+                      }
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge variant="primary">
+                        {rule.conditions[0].field}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge variant="warning">
+                        {rule.conditions[0].value}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "4px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {rule.targets.map((t) => (
+                          <Badge key={t} variant="secondary">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => handleStartEdit(rule, index)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="negative"
+                          onClick={() => handleDeleteRule(index)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
                 ))}
-              </Select>
-            </FormControl>
-            <FormControl style={{ flex: 1 }}>
-              <FormControl.Label>Field to watch</FormControl.Label>
-              <Select
-                value={selectedField?.id}
-                onChange={(e) => {
-                  const field = fields.find((f) => f.id === e.target.value);
-                  setSelectedField(field);
-                }}
-              >
-                <Select.Option value="">Select a field</Select.Option>
-                {fields.map((field) => (
-                  <Select.Option key={field.id} value={field.id}>
-                    {field.name}
-                  </Select.Option>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl style={{ flex: 1 }}>
-              <FormControl.Label>Value to match</FormControl.Label>
-              {valueOptions.length > 0 ? (
-                <Select value={value} onChange={(e) => setValue(e.target.value)}>
-                  <Select.Option value="">Select a value</Select.Option>
-                  {valueOptions.map((option) => (
-                    <Select.Option key={option} value={option}>
-                      {option}
+              </Table.Body>
+            </Table>
+          </div>
+        )}
+
+        {showForm && (
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "24px",
+              background: "#F7F9FA",
+              border: "1px solid #D3DAE6",
+              borderRadius: "6px",
+            }}
+          >
+            <Subheading style={{ marginBottom: "16px" }}>
+              {editingRuleIndex !== null ? "Edit Hide Rule" : "Add Hide Rule"}
+            </Subheading>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Content Type</FormControl.Label>
+                <Select
+                  value={selectedContentType}
+                  onChange={(e) => setSelectedContentType(e.target.value)}
+                >
+                  <Select.Option value="">Select a content type</Select.Option>
+                  {contentTypes.map((contentType) => (
+                    <Select.Option
+                      key={contentType.sys.id}
+                      value={contentType.sys.id}
+                    >
+                      {contentType.name}
                     </Select.Option>
                   ))}
                 </Select>
-              ) : (
-                <TextInput
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  placeholder="Enter value to match"
-                />
-              )}
-            </FormControl>
-          </div>
-          <FormControl>
-            <FormControl.Label>Fields to hide</FormControl.Label>
-            {fields.map((field) => (
-              <Checkbox
-                key={field.id}
-                id={field.id}
-                isChecked={selectedTargets.includes(field.id)}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setSelectedTargets([...selectedTargets, field.id]);
-                  } else {
-                    setSelectedTargets(
-                      selectedTargets.filter((id) => id !== field.id)
-                    );
-                  }
-                }}
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Field to watch</FormControl.Label>
+                <Select
+                  value={selectedField?.id}
+                  onChange={(e) => {
+                    const field = fields.find((f) => f.id === e.target.value);
+                    setSelectedField(field);
+                  }}
+                >
+                  <Select.Option value="">Select a field</Select.Option>
+                  {fields.map((field) => (
+                    <Select.Option key={field.id} value={field.id}>
+                      {field.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Value to match</FormControl.Label>
+                {valueOptions.length > 0 ? (
+                  <Select
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                  >
+                    <Select.Option value="">Select a value</Select.Option>
+                    {valueOptions.map((option) => (
+                      <Select.Option key={option} value={option}>
+                        {option}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                ) : (
+                  <TextInput
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder="Enter value to match"
+                  />
+                )}
+              </FormControl>
+            </div>
+            <FormControl>
+              <FormControl.Label>Fields to hide</FormControl.Label>
+              <div
+                style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px" }}
               >
-                {field.name}
-              </Checkbox>
-            ))}
-          </FormControl>
-          <Button onClick={handleSaveRule}>
-            {editingRuleIndex !== null ? "Update Rule" : "Add Rule"}
-          </Button>
-          <Button onClick={handleCancelEdit} style={{ marginLeft: "10px" }}>
-            Cancel
-          </Button>
-        </div>
-      )}
-            {/* Help Text Rules Section */}
-            <Subheading style={{ marginTop: "40px", marginBottom: "16px" }}>
-        Help Text Rules
-      </Subheading>
-      <Table>
-        <Table.Head>
-          <Table.Row>
-            <Table.Cell>Content Type</Table.Cell>
-            <Table.Cell>Controlling Field</Table.Cell>
-            <Table.Cell>Value</Table.Cell>
-            <Table.Cell>Target Field</Table.Cell>
-            <Table.Cell>Help Text</Table.Cell>
-            <Table.Cell>Actions</Table.Cell>
-          </Table.Row>
-        </Table.Head>
-        <Table.Body>
-          {helpTextRules.map((helpTextRule, index) => (
-            <Table.Row key={index}>
-              <Table.Cell>
-                {
-                  contentTypes.find((ct) => ct.sys.id === helpTextRule.contentType)
-                    ?.name
-                }
-              </Table.Cell>
-              <Table.Cell>{helpTextRule.conditions[0].field}</Table.Cell>
-              <Table.Cell>{helpTextRule.conditions[0].value}</Table.Cell>
-              <Table.Cell>{helpTextRule.targetField}</Table.Cell>
-              <Table.Cell style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {helpTextRule.helpText}
-              </Table.Cell>
-              <Table.Cell>
-                <Button onClick={() => handleStartEditHelpText(helpTextRule, index)} size="small">
-                  Edit
-                </Button>
-                <Button
-                  onClick={() => handleDeleteHelpText(index)}
-                  style={{ marginLeft: "10px" }}
-                  variant="negative"
-                  size="small"
-                >
-                  Delete
-                </Button>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table>
-      <Button onClick={() => showEmptyHelpTextForm()} style={{ marginTop: "10px" }}>
-        Add Help Text Rule
-      </Button>
-
-      {showHelpTextForm && (
-        <div style={{ marginTop: "20px", padding: "20px", border: "1px solid #ccc", borderRadius: "4px" }}>
-          <Subheading>Add/Edit Help Text Rule</Subheading>
-          <FormControl>
-            <FormControl.Label>Content Type</FormControl.Label>
-            <Select
-              value={helpTextContentType}
-              onChange={(e) => setHelpTextContentType(e.target.value)}
-            >
-              <Select.Option value="">Select a content type</Select.Option>
-              {contentTypes.map((contentType) => (
-                <Select.Option
-                  key={contentType.sys.id}
-                  value={contentType.sys.id}
-                >
-                  {contentType.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <FormControl.Label>Controlling Field (to watch)</FormControl.Label>
-            <Select
-              value={helpTextControllingField?.id}
-              onChange={(e) => {
-                const field = helpTextFields.find((f) => f.id === e.target.value);
-                setHelpTextControllingField(field);
-              }}
-            >
-              <Select.Option value="">Select a field</Select.Option>
-              {helpTextFields.map((field) => (
-                <Select.Option key={field.id} value={field.id}>
-                  {field.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <FormControl.Label>Value to match</FormControl.Label>
-            {helpTextValueOptions.length > 0 ? (
-              <Select value={helpTextValue} onChange={(e) => setHelpTextValue(e.target.value)}>
-                <Select.Option value="">Select a value</Select.Option>
-                {helpTextValueOptions.map((option) => (
-                  <Select.Option key={option} value={option}>
-                    {option}
-                  </Select.Option>
+                {fields.map((field) => (
+                  <Checkbox
+                    key={field.id}
+                    id={field.id}
+                    isChecked={selectedTargets.includes(field.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedTargets([...selectedTargets, field.id]);
+                      } else {
+                        setSelectedTargets(
+                          selectedTargets.filter((id) => id !== field.id),
+                        );
+                      }
+                    }}
+                  >
+                    {field.name}
+                  </Checkbox>
                 ))}
-              </Select>
-            ) : (
-              <TextInput
-                value={helpTextValue}
-                onChange={(e) => setHelpTextValue(e.target.value)}
-                placeholder="Enter value to match"
-              />
-            )}
-          </FormControl>
-          <FormControl>
-            <FormControl.Label>Target Field (where to show help text)</FormControl.Label>
-            <Select
-              value={helpTextTargetField}
-              onChange={(e) => setHelpTextTargetField(e.target.value)}
-            >
-              <Select.Option value="">Select a field</Select.Option>
-              {helpTextFields.map((field) => (
-                <Select.Option key={field.id} value={field.id}>
-                  {field.name}
-                </Select.Option>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl>
-            <FormControl.Label>Help Text</FormControl.Label>
-            <FormControl.HelpText>
-              This text will be displayed under the target field when the condition matches
-            </FormControl.HelpText>
-            <Textarea
-              value={helpTextContent}
-              onChange={(e) => setHelpTextContent(e.target.value)}
-              placeholder="Enter help text to display under the target field..."
-              rows={3}
-            />
-          </FormControl>
-          <Button onClick={handleSaveHelpText}>
-            {editingHelpTextIndex !== null ? "Update Help Text" : "Add Help Text"}
-          </Button>
-          <Button onClick={handleCancelEditHelpText} style={{ marginLeft: "10px" }}>
-            Cancel
+              </div>
+            </FormControl>
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <Button variant="primary" onClick={handleSaveRule}>
+                {editingRuleIndex !== null ? "Update Rule" : "Save Rule"}
+              </Button>
+              <Button variant="secondary" onClick={handleCancelEdit}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Help Text Rules Section ── */}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #E5E5E5",
+          borderRadius: "8px",
+          padding: "24px",
+          marginBottom: "32px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "16px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Subheading marginBottom="none">Help Text Rules</Subheading>
+            <Badge variant="secondary">{helpTextRules.length}</Badge>
+          </div>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => showEmptyHelpTextForm()}
+          >
+            + Add Help Text
           </Button>
         </div>
-      )}
+
+        {helpTextRules.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "32px 16px",
+              color: "#8091A5",
+              background: "#F7F9FA",
+              borderRadius: "6px",
+            }}
+          >
+            <Paragraph style={{ color: "#8091A5", marginBottom: 0 }}>
+              No help text rules configured yet. Click "Add Help Text" to get
+              started.
+            </Paragraph>
+          </div>
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <Table>
+              <Table.Head style={{ background: "#F7F9FA" }}>
+                <Table.Row>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Content Type
+                  </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Controlling Field
+                  </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Value
+                  </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Target Field
+                  </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Help Text
+                  </Table.Cell>
+                  <Table.Cell
+                    style={{
+                      fontWeight: 600,
+                      color: "#536171",
+                      width: "140px",
+                    }}
+                  >
+                    Actions
+                  </Table.Cell>
+                </Table.Row>
+              </Table.Head>
+              <Table.Body>
+                {helpTextRules.map((helpTextRule, index) => (
+                  <Table.Row key={index}>
+                    <Table.Cell>
+                      {
+                        contentTypes.find(
+                          (ct) => ct.sys.id === helpTextRule.contentType,
+                        )?.name
+                      }
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge variant="primary">
+                        {helpTextRule.conditions[0].field}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge variant="warning">
+                        {helpTextRule.conditions[0].value}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge variant="secondary">
+                        {helpTextRule.targetField}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell
+                      style={{
+                        maxWidth: "200px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {helpTextRule.helpText}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() =>
+                            handleStartEditHelpText(helpTextRule, index)
+                          }
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="negative"
+                          onClick={() => handleDeleteHelpText(index)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          </div>
+        )}
+
+        {showHelpTextForm && (
+          <div
+            style={{
+              marginTop: "20px",
+              padding: "24px",
+              background: "#F7F9FA",
+              border: "1px solid #D3DAE6",
+              borderRadius: "6px",
+            }}
+          >
+            <Subheading style={{ marginBottom: "16px" }}>
+              {editingHelpTextIndex !== null
+                ? "Edit Help Text Rule"
+                : "Add Help Text Rule"}
+            </Subheading>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Content Type</FormControl.Label>
+                <Select
+                  value={helpTextContentType}
+                  onChange={(e) => setHelpTextContentType(e.target.value)}
+                >
+                  <Select.Option value="">Select a content type</Select.Option>
+                  {contentTypes.map((contentType) => (
+                    <Select.Option
+                      key={contentType.sys.id}
+                      value={contentType.sys.id}
+                    >
+                      {contentType.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Controlling Field</FormControl.Label>
+                <Select
+                  value={helpTextControllingField?.id}
+                  onChange={(e) => {
+                    const field = helpTextFields.find(
+                      (f) => f.id === e.target.value,
+                    );
+                    setHelpTextControllingField(field);
+                  }}
+                >
+                  <Select.Option value="">Select a field</Select.Option>
+                  {helpTextFields.map((field) => (
+                    <Select.Option key={field.id} value={field.id}>
+                      {field.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Value to match</FormControl.Label>
+                {helpTextValueOptions.length > 0 ? (
+                  <Select
+                    value={helpTextValue}
+                    onChange={(e) => setHelpTextValue(e.target.value)}
+                  >
+                    <Select.Option value="">Select a value</Select.Option>
+                    {helpTextValueOptions.map((option) => (
+                      <Select.Option key={option} value={option}>
+                        {option}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                ) : (
+                  <TextInput
+                    value={helpTextValue}
+                    onChange={(e) => setHelpTextValue(e.target.value)}
+                    placeholder="Enter value to match"
+                  />
+                )}
+              </FormControl>
+            </div>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Target Field</FormControl.Label>
+                <Select
+                  value={helpTextTargetField}
+                  onChange={(e) => setHelpTextTargetField(e.target.value)}
+                >
+                  <Select.Option value="">Select a field</Select.Option>
+                  {helpTextFields.map((field) => (
+                    <Select.Option key={field.id} value={field.id}>
+                      {field.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Help Text</FormControl.Label>
+                <Textarea
+                  value={helpTextContent}
+                  onChange={(e) => setHelpTextContent(e.target.value)}
+                  placeholder="Enter help text to display under the target field..."
+                  rows={3}
+                />
+              </FormControl>
+            </div>
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <Button variant="primary" onClick={handleSaveHelpText}>
+                {editingHelpTextIndex !== null
+                  ? "Update Help Text"
+                  : "Save Help Text"}
+              </Button>
+              <Button variant="secondary" onClick={handleCancelEditHelpText}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
