@@ -96,7 +96,7 @@ const EntryEditor = () => {
     }
   }, [sdk]);
 
-  // Register listeners for controlling field changes.
+  // Register listeners for controlling field changes across all locales.
   useEffect(() => {
     const controllerIds = new Set();
 
@@ -112,24 +112,34 @@ const EntryEditor = () => {
       });
     });
 
-    // Initialize with current values.
+    // Initialize with current values for every locale the field supports.
     const initialValues = {};
     controllerIds.forEach((id) => {
       const field = sdk.entry.fields[id];
-      if (field) initialValues[id] = field.getValue();
+      if (!field) return;
+      initialValues[id] = {};
+      const fieldLocales = field.locales || [sdk.locales.default];
+      fieldLocales.forEach((locale) => {
+        initialValues[id][locale] = field.getForLocale(locale).getValue();
+      });
     });
     setControllerValues(initialValues);
 
-    // Listen for changes.
+    // Listen for changes on every locale the field supports.
     const unregisters = [];
     controllerIds.forEach((id) => {
       const field = sdk.entry.fields[id];
-      if (field) {
-        const detach = field.onValueChanged((value) => {
-          setControllerValues((prev) => ({ ...prev, [id]: value }));
+      if (!field) return;
+      const fieldLocales = field.locales || [sdk.locales.default];
+      fieldLocales.forEach((locale) => {
+        const detach = field.getForLocale(locale).onValueChanged((value) => {
+          setControllerValues((prev) => ({
+            ...prev,
+            [id]: { ...prev[id], [locale]: value },
+          }));
         });
         unregisters.push(detach);
-      }
+      });
     });
 
     return () => {
@@ -149,13 +159,15 @@ const EntryEditor = () => {
     });
 
     rules.forEach((rule) => {
-      const results = rule.conditions.map((cond) =>
-        evaluateCondition(
-          controllerValues[cond.field],
+      const results = rule.conditions.map((cond) => {
+        const locale = cond.locale || sdk.locales.default;
+        const fieldValues = controllerValues[cond.field];
+        return evaluateCondition(
+          fieldValues ? fieldValues[locale] : undefined,
           cond.value,
           cond.operator,
-        ),
-      );
+        );
+      });
       const matches =
         rule.logic === "all" ? results.every(Boolean) : results.some(Boolean);
 
@@ -175,13 +187,15 @@ const EntryEditor = () => {
     const helpTexts = {};
 
     helpTextRules.forEach((rule) => {
-      const results = rule.conditions.map((cond) =>
-        evaluateCondition(
-          controllerValues[cond.field],
+      const results = rule.conditions.map((cond) => {
+        const locale = cond.locale || sdk.locales.default;
+        const fieldValues = controllerValues[cond.field];
+        return evaluateCondition(
+          fieldValues ? fieldValues[locale] : undefined,
           cond.value,
           cond.operator,
-        ),
-      );
+        );
+      });
       const matches =
         rule.logic === "all" ? results.every(Boolean) : results.some(Boolean);
 
@@ -232,19 +246,43 @@ const EntryEditor = () => {
     return null; // Let the default Field component handle built-in widgets
   };
 
-  // Build a FieldAppSDK-compatible object for a given field.
-  const buildFieldSdk = (fieldId) => {
-    const entryField = sdk.entry.fields[fieldId];
-    const fieldApi = entryField.getForLocale(sdk.locales.default);
+  // Pre-build FieldAppSDK-compatible objects for every field × locale combination.
+  const fieldSdkMap = useMemo(() => {
+    const map = {};
+    if (!sdk.contentType) return map;
 
-    return {
-      ...sdk,
-      field: fieldApi,
-      parameters: {
-        ...sdk.parameters,
-        instance: {},
-      },
-    };
+    sdk.contentType.fields.forEach((fieldDef) => {
+      const fieldId = fieldDef.id;
+      const entryField = sdk.entry.fields[fieldId];
+      if (!entryField) return;
+
+      const locales = entryField.locales || [sdk.locales.default];
+
+      locales.forEach((locale) => {
+        const fieldApi = entryField.getForLocale(locale);
+        map[`${fieldId}::${locale}`] = {
+          ...sdk,
+          field: fieldApi,
+          parameters: {
+            ...sdk.parameters,
+            instance: {},
+          },
+        };
+      });
+    });
+
+    return map;
+  }, [sdk]);
+
+  // Determine which locales each field supports.
+  const getFieldLocales = (fieldDef) => {
+    const entryField = sdk.entry.fields[fieldDef.id];
+    const locales = entryField?.locales || [sdk.locales.default];
+    return [...locales].sort((a, b) => {
+      if (a === sdk.locales.default) return -1;
+      if (b === sdk.locales.default) return 1;
+      return 0;
+    });
   };
 
   return (
@@ -255,21 +293,34 @@ const EntryEditor = () => {
 
         if (!vis || !vis.isVisible) return null;
 
-        const fieldSdk = buildFieldSdk(fieldId);
+        const locales = getFieldLocales(fieldDef);
         const helpText = fieldHelpTexts[fieldId];
 
         return (
           <div key={fieldId} style={{ marginBottom: "16px" }}>
-            <FieldWrapper sdk={fieldSdk} name={fieldDef.name}>
-              <Field
-                sdk={fieldSdk}
-                widgetId={widgetIdMap[fieldId]?.widgetId}
-                renderFieldEditor={renderFieldEditor}
-              />
-              {helpText && (
-                <FormControl.HelpText>{helpText}</FormControl.HelpText>
-              )}
-            </FieldWrapper>
+            {locales.map((locale) => {
+              const fieldSdk = fieldSdkMap[`${fieldId}::${locale}`];
+              const localeLabel =
+                locales.length > 1 ? ` (${locale})` : "";
+
+              return (
+                <div key={`${fieldId}-${locale}`} style={{ marginBottom: locales.length > 1 ? "8px" : 0 }}>
+                  <FieldWrapper
+                    sdk={fieldSdk}
+                    name={`${fieldDef.name}${localeLabel}`}
+                  >
+                    <Field
+                      sdk={fieldSdk}
+                      widgetId={widgetIdMap[fieldId]?.widgetId}
+                      renderFieldEditor={renderFieldEditor}
+                    />
+                    {helpText && locale === locales[0] && (
+                      <FormControl.HelpText>{helpText}</FormControl.HelpText>
+                    )}
+                  </FieldWrapper>
+                </div>
+              );
+            })}
           </div>
         );
       })}
