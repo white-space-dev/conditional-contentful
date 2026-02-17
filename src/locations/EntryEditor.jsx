@@ -1,7 +1,32 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import { useSDK } from "@contentful/react-apps-toolkit";
 import { Field, FieldWrapper } from "@contentful/default-field-editors";
-import { FormControl } from "@contentful/f36-components";
+import { FormControl, TextInput } from "@contentful/f36-components";
+
+const LazyCustomColorPicker = lazy(() =>
+  import("../components/CustomColorPicker"),
+);
+
+const CustomFieldInput = ({ sdk: fieldSdk }) => {
+  const [value, setValue] = useState(fieldSdk.field.getValue() || "");
+
+  useEffect(() => {
+    const detach = fieldSdk.field.onValueChanged((newValue) => {
+      setValue(newValue || "");
+    });
+    return () => detach();
+  }, [fieldSdk.field]);
+
+  return (
+    <TextInput
+      value={value}
+      onChange={(e) => {
+        setValue(e.target.value);
+        fieldSdk.field.setValue(e.target.value);
+      }}
+    />
+  );
+};
 
 const evaluateCondition = (actual, expected, operator) => {
   switch (operator) {
@@ -46,7 +71,12 @@ const EntryEditor = () => {
       if (params && params.rules) {
         const parsed = JSON.parse(params.rules);
         if (Array.isArray(parsed)) {
-          setRules(parsed.filter((rule) => rule.contentType === currentCt));
+          setRules(
+            parsed.filter(
+              (rule) =>
+                rule.contentType === currentCt && rule.enabled !== false,
+            ),
+          );
         }
       }
 
@@ -54,7 +84,10 @@ const EntryEditor = () => {
         const parsed = JSON.parse(params.helpTextRules);
         if (Array.isArray(parsed)) {
           setHelpTextRules(
-            parsed.filter((rule) => rule.contentType === currentCt),
+            parsed.filter(
+              (rule) =>
+                rule.contentType === currentCt && rule.enabled !== false,
+            ),
           );
         }
       }
@@ -160,17 +193,45 @@ const EntryEditor = () => {
     return helpTexts;
   }, [controllerValues, helpTextRules]);
 
-  // Build a map of fieldId -> widgetId from the editor interface controls.
+  // Build a map of fieldId -> { widgetId, widgetNamespace } from editor interface controls.
   const widgetIdMap = useMemo(() => {
     const map = {};
     const controls = sdk.editor?.editorInterface?.controls || [];
     controls.forEach((control) => {
       if (control.fieldId && control.widgetId) {
-        map[control.fieldId] = control.widgetId;
+        map[control.fieldId] = {
+          widgetId: control.widgetId,
+          widgetNamespace: control.widgetNamespace || "builtin",
+        };
       }
     });
     return map;
   }, [sdk.editor]);
+
+  // Render custom widgets that @contentful/default-field-editors doesn't support.
+  const renderFieldEditor = (widgetId, fieldSdk) => {
+    const fieldId = fieldSdk.field.id;
+    const control = widgetIdMap[fieldId];
+
+    // Only intercept non-builtin widgets (app or extension)
+    if (control && control.widgetNamespace !== "builtin") {
+      // Color picker: detect by checking if the widget is this app itself
+      const isColorPicker = control.widgetId === sdk.ids.app;
+
+      if (isColorPicker) {
+        return (
+          <Suspense fallback={<div style={{ padding: 8 }}>Loading...</div>}>
+            <LazyCustomColorPicker sdk={fieldSdk} />
+          </Suspense>
+        );
+      }
+
+      // Fallback for other custom widgets: properly controlled input
+      return <CustomFieldInput sdk={fieldSdk} />;
+    }
+
+    return null; // Let the default Field component handle built-in widgets
+  };
 
   // Build a FieldAppSDK-compatible object for a given field.
   const buildFieldSdk = (fieldId) => {
@@ -201,7 +262,11 @@ const EntryEditor = () => {
         return (
           <div key={fieldId} style={{ marginBottom: "16px" }}>
             <FieldWrapper sdk={fieldSdk} name={fieldDef.name}>
-              <Field sdk={fieldSdk} widgetId={widgetIdMap[fieldId]} />{" "}
+              <Field
+                sdk={fieldSdk}
+                widgetId={widgetIdMap[fieldId]?.widgetId}
+                renderFieldEditor={renderFieldEditor}
+              />
               {helpText && (
                 <FormControl.HelpText>{helpText}</FormControl.HelpText>
               )}

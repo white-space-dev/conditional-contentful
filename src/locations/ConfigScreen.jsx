@@ -12,7 +12,6 @@ import {
   Subheading,
   Note,
   Badge,
-  Box,
 } from "@contentful/f36-components";
 import { useCMA, useSDK } from "@contentful/react-apps-toolkit";
 
@@ -41,6 +40,8 @@ const ConfigScreen = () => {
   const [editingHelpTextIndex, setEditingHelpTextIndex] = useState(null);
   const [showHelpTextForm, setShowHelpTextForm] = useState(false);
   const [validationError, setValidationError] = useState("");
+  const [selectedRuleIndices, setSelectedRuleIndices] = useState([]);
+  const [selectedHelpTextIndices, setSelectedHelpTextIndices] = useState([]);
 
   const onConfigure = useCallback(async () => {
     const parameters = await sdk.app.getParameters();
@@ -160,6 +161,8 @@ const ConfigScreen = () => {
       conditions: [{ field: selectedField.id, operator: "eq", value }],
       targets: selectedTargets,
       logic: "all",
+      enabled:
+        editingRuleIndex !== null ? rules[editingRuleIndex].enabled : true,
     };
 
     if (editingRuleIndex !== null) {
@@ -189,6 +192,11 @@ const ConfigScreen = () => {
     const newRules = [...rules];
     newRules.splice(index, 1);
     setRules(newRules);
+    setSelectedRuleIndices(
+      selectedRuleIndices
+        .filter((i) => i !== index)
+        .map((i) => (i > index ? i - 1 : i)),
+    );
   };
 
   const handleCancelEdit = () => {
@@ -232,6 +240,10 @@ const ConfigScreen = () => {
       targetField: helpTextTargetField,
       helpText: helpTextContent,
       logic: "all",
+      enabled:
+        editingHelpTextIndex !== null
+          ? helpTextRules[editingHelpTextIndex].enabled
+          : true,
     };
 
     if (editingHelpTextIndex !== null) {
@@ -262,6 +274,11 @@ const ConfigScreen = () => {
     const newHelpTextRules = [...helpTextRules];
     newHelpTextRules.splice(index, 1);
     setHelpTextRules(newHelpTextRules);
+    setSelectedHelpTextIndices(
+      selectedHelpTextIndices
+        .filter((i) => i !== index)
+        .map((i) => (i > index ? i - 1 : i)),
+    );
   };
 
   const handleCancelEditHelpText = () => {
@@ -277,6 +294,42 @@ const ConfigScreen = () => {
     setHelpTextValue("");
     setHelpTextTargetField("");
     setHelpTextContent("");
+  };
+
+  const toggleRuleEnabled = (index) => {
+    const updated = [...rules];
+    updated[index] = {
+      ...updated[index],
+      enabled: !(updated[index].enabled !== false),
+    };
+    setRules(updated);
+  };
+
+  const toggleSelectedRulesEnabled = (enable) => {
+    const updated = [...rules];
+    selectedRuleIndices.forEach((i) => {
+      updated[i] = { ...updated[i], enabled: enable };
+    });
+    setRules(updated);
+    setSelectedRuleIndices([]);
+  };
+
+  const toggleHelpTextEnabled = (index) => {
+    const updated = [...helpTextRules];
+    updated[index] = {
+      ...updated[index],
+      enabled: !(updated[index].enabled !== false),
+    };
+    setHelpTextRules(updated);
+  };
+
+  const toggleSelectedHelpTextsEnabled = (enable) => {
+    const updated = [...helpTextRules];
+    selectedHelpTextIndices.forEach((i) => {
+      updated[i] = { ...updated[i], enabled: enable };
+    });
+    setHelpTextRules(updated);
+    setSelectedHelpTextIndices([]);
   };
 
   const showEmptyForm = () => {
@@ -345,7 +398,7 @@ const ConfigScreen = () => {
     [];
 
   return (
-    <div style={{ maxWidth: "960px", margin: "0 auto", padding: "24px 32px" }}>
+    <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "24px 32px" }}>
       {/* Header */}
       <div
         style={{
@@ -421,6 +474,21 @@ const ConfigScreen = () => {
             <Table>
               <Table.Head style={{ background: "#F7F9FA" }}>
                 <Table.Row>
+                  <Table.Cell style={{ width: "40px" }}>
+                    <Checkbox
+                      isChecked={
+                        selectedRuleIndices.length === rules.length &&
+                        rules.length > 0
+                      }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedRuleIndices(rules.map((_, i) => i));
+                        } else {
+                          setSelectedRuleIndices([]);
+                        }
+                      }}
+                    />
+                  </Table.Cell>
                   <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
                     Content Type
                   </Table.Cell>
@@ -432,6 +500,9 @@ const ConfigScreen = () => {
                   </Table.Cell>
                   <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
                     Target Fields
+                  </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Status
                   </Table.Cell>
                   <Table.Cell
                     style={{
@@ -446,7 +517,27 @@ const ConfigScreen = () => {
               </Table.Head>
               <Table.Body>
                 {rules.map((rule, index) => (
-                  <Table.Row key={index}>
+                  <Table.Row
+                    key={index}
+                    style={{ opacity: rule.enabled === false ? 0.5 : 1 }}
+                  >
+                    <Table.Cell>
+                      <Checkbox
+                        isChecked={selectedRuleIndices.includes(index)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedRuleIndices([
+                              ...selectedRuleIndices,
+                              index,
+                            ]);
+                          } else {
+                            setSelectedRuleIndices(
+                              selectedRuleIndices.filter((i) => i !== index),
+                            );
+                          }
+                        }}
+                      />
+                    </Table.Cell>
                     <Table.Cell>
                       {
                         contentTypes.find(
@@ -480,7 +571,25 @@ const ConfigScreen = () => {
                       </div>
                     </Table.Cell>
                     <Table.Cell>
+                      <Badge
+                        variant={
+                          rule.enabled !== false ? "positive" : "negative"
+                        }
+                      >
+                        {rule.enabled !== false ? "Enabled" : "Disabled"}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
                       <div style={{ display: "flex", gap: "8px" }}>
+                        <Button
+                          size="small"
+                          variant={
+                            rule.enabled !== false ? "negative" : "positive"
+                          }
+                          onClick={() => toggleRuleEnabled(index)}
+                        >
+                          {rule.enabled !== false ? "Disable" : "Enable"}
+                        </Button>
                         <Button
                           size="small"
                           variant="secondary"
@@ -501,6 +610,37 @@ const ConfigScreen = () => {
                 ))}
               </Table.Body>
             </Table>
+          </div>
+        )}
+        {selectedRuleIndices.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 12px",
+              background: "#EBF5FF",
+              borderRadius: "4px",
+              marginTop: "8px",
+            }}
+          >
+            <Paragraph style={{ marginBottom: 0, fontSize: "14px" }}>
+              {selectedRuleIndices.length} rule(s) selected
+            </Paragraph>
+            <Button
+              size="small"
+              variant="positive"
+              onClick={() => toggleSelectedRulesEnabled(true)}
+            >
+              Enable Selected
+            </Button>
+            <Button
+              size="small"
+              variant="negative"
+              onClick={() => toggleSelectedRulesEnabled(false)}
+            >
+              Disable Selected
+            </Button>
           </div>
         )}
 
@@ -663,6 +803,21 @@ const ConfigScreen = () => {
             <Table>
               <Table.Head style={{ background: "#F7F9FA" }}>
                 <Table.Row>
+                  <Table.Cell style={{ width: "40px" }}>
+                    <Checkbox
+                      isChecked={
+                        selectedHelpTextIndices.length === helpTextRules.length &&
+                        helpTextRules.length > 0
+                      }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedHelpTextIndices(helpTextRules.map((_, i) => i));
+                        } else {
+                          setSelectedHelpTextIndices([]);
+                        }
+                      }}
+                    />
+                  </Table.Cell>
                   <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
                     Content Type
                   </Table.Cell>
@@ -678,6 +833,9 @@ const ConfigScreen = () => {
                   <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
                     Help Text
                   </Table.Cell>
+                  <Table.Cell style={{ fontWeight: 600, color: "#536171" }}>
+                    Status
+                  </Table.Cell>
                   <Table.Cell
                     style={{
                       fontWeight: 600,
@@ -691,7 +849,29 @@ const ConfigScreen = () => {
               </Table.Head>
               <Table.Body>
                 {helpTextRules.map((helpTextRule, index) => (
-                  <Table.Row key={index}>
+                  <Table.Row
+                    key={index}
+                    style={{
+                      opacity: helpTextRule.enabled === false ? 0.5 : 1,
+                    }}
+                  >
+                    <Table.Cell>
+                      <Checkbox
+                        isChecked={selectedHelpTextIndices.includes(index)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedHelpTextIndices([
+                              ...selectedHelpTextIndices,
+                              index,
+                            ]);
+                          } else {
+                            setSelectedHelpTextIndices(
+                              selectedHelpTextIndices.filter((i) => i !== index),
+                            );
+                          }
+                        }}
+                      />
+                    </Table.Cell>
                     <Table.Cell>
                       {
                         contentTypes.find(
@@ -724,7 +904,33 @@ const ConfigScreen = () => {
                       {helpTextRule.helpText}
                     </Table.Cell>
                     <Table.Cell>
+                      <Badge
+                        variant={
+                          helpTextRule.enabled !== false
+                            ? "positive"
+                            : "negative"
+                        }
+                      >
+                        {helpTextRule.enabled !== false
+                          ? "Enabled"
+                          : "Disabled"}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell>
                       <div style={{ display: "flex", gap: "8px" }}>
+                        <Button
+                          size="small"
+                          variant={
+                            helpTextRule.enabled !== false
+                              ? "negative"
+                              : "positive"
+                          }
+                          onClick={() => toggleHelpTextEnabled(index)}
+                        >
+                          {helpTextRule.enabled !== false
+                            ? "Disable"
+                            : "Enable"}
+                        </Button>
                         <Button
                           size="small"
                           variant="secondary"
@@ -747,6 +953,38 @@ const ConfigScreen = () => {
                 ))}
               </Table.Body>
             </Table>
+          </div>
+        )}
+
+        {selectedHelpTextIndices.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 12px",
+              background: "#EBF5FF",
+              borderRadius: "4px",
+              marginTop: "8px",
+            }}
+          >
+            <Paragraph style={{ marginBottom: 0, fontSize: "14px" }}>
+              {selectedHelpTextIndices.length} rule(s) selected
+            </Paragraph>
+            <Button
+              size="small"
+              variant="positive"
+              onClick={() => toggleSelectedHelpTextsEnabled(true)}
+            >
+              Enable Selected
+            </Button>
+            <Button
+              size="small"
+              variant="negative"
+              onClick={() => toggleSelectedHelpTextsEnabled(false)}
+            >
+              Disable Selected
+            </Button>
           </div>
         )}
 
