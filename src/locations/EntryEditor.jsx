@@ -215,8 +215,7 @@ const EntryEditor = () => {
 
     // Only intercept non-builtin widgets (app or extension)
     if (control && control.widgetNamespace !== "builtin") {
-      // Color picker: detect by checking if the widget is this app itself
-      const isColorPicker = control.widgetId === sdk.ids.app;
+      const isColorPicker = control.widgetId === "colourpicker";
 
       if (isColorPicker) {
         return (
