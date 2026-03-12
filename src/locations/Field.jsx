@@ -6,6 +6,8 @@ import NotVisibleMessage from '../components/NotVisibleMessage';
 
 // Lazy-load CustomColorPicker to enable a loader until it is ready
 const LazyCustomColorPicker = React.lazy(() => import("../components/CustomColorPicker"));
+// Lazy-load CloudinaryField
+const LazyCloudinaryField = React.lazy(() => import("../components/CloudinaryField"));
 
 // Minimal Loader fallback shown while the component/code-split chunk loads
 const Loader = () => (
@@ -173,6 +175,22 @@ const Field = () => {
       <>
         <Suspense fallback={<Loader />}>
           <LazyCustomColorPicker sdk={sdk} />
+        </Suspense>
+        {currentHelpText && (
+          <Note variant="primary" style={{ marginTop: '8px' }}>
+            {currentHelpText}
+          </Note>
+        )}
+      </>
+    ) : (
+      <NotVisibleMessage />
+    );
+  } else if (sdk.parameters.instance.intendedAppearance === 'cloudinaryWidget') {
+    // Render Cloudinary widget for JSON Object fields
+    return isVisible ? (
+      <>
+        <Suspense fallback={<Loader />}>
+          <LazyCloudinaryField sdk={sdk} />
         </Suspense>
         {currentHelpText && (
           <Note variant="primary" style={{ marginTop: '8px' }}>

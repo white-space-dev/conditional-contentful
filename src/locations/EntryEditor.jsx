@@ -7,6 +7,10 @@ const LazyCustomColorPicker = lazy(() =>
   import("../components/CustomColorPicker"),
 );
 
+const LazyCloudinaryField = lazy(() =>
+  import("../components/CloudinaryField"),
+);
+
 const CustomFieldInput = ({ sdk: fieldSdk }) => {
   const [value, setValue] = useState(fieldSdk.field.getValue() || "");
 
@@ -222,57 +226,68 @@ const EntryEditor = () => {
     return map;
   }, [sdk.editor]);
 
+  console.log('widgetIdMap', widgetIdMap);
+
   // Render custom widgets that @contentful/default-field-editors doesn't support.
-  const renderFieldEditor = (widgetId, fieldSdk) => {
-    const fieldId = fieldSdk.field.id;
-    const control = widgetIdMap[fieldId];
+const renderFieldEditor = (widgetId, fieldSdk) => {
+  const fieldId = fieldSdk.field.id;
+  const control = widgetIdMap[fieldId];
 
-    // Only intercept non-builtin widgets (app or extension)
-    if (control && control.widgetNamespace !== "builtin") {
-      const isColorPicker = control.widgetId === "colourpicker";
+  // Only intercept specific custom widgets we handle ourselves
+  if (control && control.widgetNamespace !== "builtin") {
+    const isColorPicker = control.widgetId === "colourpicker";
 
-      if (isColorPicker) {
-        return (
-          <Suspense fallback={<div style={{ padding: 8 }}>Loading...</div>}>
-            <LazyCustomColorPicker sdk={fieldSdk} />
-          </Suspense>
-        );
-      }
-
-      // Fallback for other custom widgets: properly controlled input
-      return <CustomFieldInput sdk={fieldSdk} />;
+    if (isColorPicker) {
+      return (
+        <Suspense fallback={<div style={{ padding: 8 }}>Loading...</div>}>
+          <LazyCustomColorPicker sdk={fieldSdk} />
+        </Suspense>
+      );
     }
 
-    return null; // Let the default Field component handle built-in widgets
-  };
+    // For app widgets (like Cloudinary), render our custom CloudinaryField component
+    if (control.widgetNamespace === "app") {
+      return (
+        <Suspense fallback={<div style={{ padding: 8 }}>Loading...</div>}>
+          <LazyCloudinaryField sdk={fieldSdk} widgetId={control.widgetId} />
+        </Suspense>
+      );
+    }
+
+    // Fallback for extension widgets that aren't handled above
+    return <CustomFieldInput sdk={fieldSdk} />;
+  }
+
+  return null; // Let the default Field component handle built-in widgets
+};
 
   // Pre-build FieldAppSDK-compatible objects for every field × locale combination.
-  const fieldSdkMap = useMemo(() => {
-    const map = {};
-    if (!sdk.contentType) return map;
+const fieldSdkMap = useMemo(() => {
+  const map = {};
+  if (!sdk.contentType) return map;
 
-    sdk.contentType.fields.forEach((fieldDef) => {
-      const fieldId = fieldDef.id;
-      const entryField = sdk.entry.fields[fieldId];
-      if (!entryField) return;
+  sdk.contentType.fields.forEach((fieldDef) => {
+    const fieldId = fieldDef.id;
+    const entryField = sdk.entry.fields[fieldId];
+    if (!entryField) return;
 
-      const locales = entryField.locales || [sdk.locales.default];
+    const locales = entryField.locales || [sdk.locales.default];
 
-      locales.forEach((locale) => {
-        const fieldApi = entryField.getForLocale(locale);
-        map[`${fieldId}::${locale}`] = {
-          ...sdk,
+    locales.forEach((locale) => {
+      const fieldApi = entryField.getForLocale(locale);
+      map[`${fieldId}::${locale}`] = {
+        ...sdk,
           field: fieldApi,
-          parameters: {
-            ...sdk.parameters,
-            instance: {},
-          },
-        };
-      });
+        parameters: {
+          ...sdk.parameters,
+          instance: {},
+        },
+      };
     });
+  });
 
-    return map;
-  }, [sdk]);
+  return map;
+}, [sdk]);
 
   // Determine which locales each field supports.
   const getFieldLocales = (fieldDef) => {

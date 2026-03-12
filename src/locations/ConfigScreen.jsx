@@ -12,6 +12,7 @@ import {
   Subheading,
   Note,
   Badge,
+  Switch,
 } from "@contentful/f36-components";
 import { useCMA, useSDK } from "@contentful/react-apps-toolkit";
 
@@ -43,6 +44,18 @@ const ConfigScreen = () => {
   const [selectedRuleIndices, setSelectedRuleIndices] = useState([]);
   const [selectedHelpTextIndices, setSelectedHelpTextIndices] = useState([]);
 
+  // Cloudinary configuration state
+  const [cloudinaryEnabled, setCloudinaryEnabled] = useState(false);
+  const [cloudinaryCloudName, setCloudinaryCloudName] = useState("");
+  const [cloudinaryApiKey, setCloudinaryApiKey] = useState("");
+  const [cloudinaryApiSecret, setCloudinaryApiSecret] = useState("");
+  const [cloudinaryMaxFiles, setCloudinaryMaxFiles] = useState("10");
+  const [cloudinaryStartingFolder, setCloudinaryStartingFolder] = useState("");
+  const [cloudinaryMediaQuality, setCloudinaryMediaQuality] = useState("auto");
+  const [cloudinaryFormat, setCloudinaryFormat] = useState("auto");
+  const [cloudinaryShowUploadButton, setCloudinaryShowUploadButton] = useState(true);
+  const [cloudinaryShowOnlySelectButton, setCloudinaryShowOnlySelectButton] = useState(false);
+
   const onConfigure = useCallback(async () => {
     const parameters = await sdk.app.getParameters();
     if (parameters) {
@@ -54,6 +67,37 @@ const ConfigScreen = () => {
       }
       if (parameters.contentTypeId) {
         setSelectedContentType(parameters.contentTypeId);
+      }
+      // Load Cloudinary settings
+      if (parameters.cloudinaryEnabled !== undefined) {
+        setCloudinaryEnabled(parameters.cloudinaryEnabled);
+      }
+      if (parameters.cloudinaryCloudName) {
+        setCloudinaryCloudName(parameters.cloudinaryCloudName);
+      }
+      if (parameters.cloudinaryApiKey) {
+        setCloudinaryApiKey(parameters.cloudinaryApiKey);
+      }
+      if (parameters.cloudinaryApiSecret) {
+        setCloudinaryApiSecret(parameters.cloudinaryApiSecret);
+      }
+      if (parameters.cloudinaryMaxFiles) {
+        setCloudinaryMaxFiles(parameters.cloudinaryMaxFiles);
+      }
+      if (parameters.cloudinaryStartingFolder) {
+        setCloudinaryStartingFolder(parameters.cloudinaryStartingFolder);
+      }
+      if (parameters.cloudinaryMediaQuality) {
+        setCloudinaryMediaQuality(parameters.cloudinaryMediaQuality);
+      }
+      if (parameters.cloudinaryFormat) {
+        setCloudinaryFormat(parameters.cloudinaryFormat);
+      }
+      if (parameters.cloudinaryShowUploadButton !== undefined) {
+        setCloudinaryShowUploadButton(parameters.cloudinaryShowUploadButton);
+      }
+      if (parameters.cloudinaryShowOnlySelectButton !== undefined) {
+        setCloudinaryShowOnlySelectButton(parameters.cloudinaryShowOnlySelectButton);
       }
     }
     sdk.app.setReady();
@@ -381,11 +425,21 @@ const ConfigScreen = () => {
           rules: JSON.stringify(rules),
           helpTextRules: JSON.stringify(helpTextRules),
           contentTypeId: selectedContentType,
+          cloudinaryEnabled,
+          cloudinaryCloudName,
+          cloudinaryApiKey,
+          cloudinaryApiSecret,
+          cloudinaryMaxFiles,
+          cloudinaryStartingFolder,
+          cloudinaryMediaQuality,
+          cloudinaryFormat,
+          cloudinaryShowUploadButton,
+          cloudinaryShowOnlySelectButton,
         },
         targetState: { EditorInterface: editorInterface },
       };
     });
-  }, [sdk.app, rules, helpTextRules, selectedContentType]);
+  }, [sdk.app, rules, helpTextRules, selectedContentType, cloudinaryEnabled, cloudinaryCloudName, cloudinaryApiKey, cloudinaryApiSecret, cloudinaryMaxFiles, cloudinaryStartingFolder, cloudinaryMediaQuality, cloudinaryFormat, cloudinaryShowUploadButton, cloudinaryShowOnlySelectButton]);
 
   const valueOptions =
     selectedField?.items?.validations?.find((v) => v.in)?.in ||
@@ -1098,6 +1152,222 @@ const ConfigScreen = () => {
                 Cancel
               </Button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Cloudinary Integration Section ── */}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #E5E5E5",
+          borderRadius: "8px",
+          padding: "24px",
+          marginBottom: "32px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "16px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <Subheading marginBottom="none">Cloudinary Integration</Subheading>
+            <Badge variant={cloudinaryEnabled ? "positive" : "secondary"}>
+              {cloudinaryEnabled ? "Enabled" : "Disabled"}
+            </Badge>
+          </div>
+          <Switch
+            isChecked={cloudinaryEnabled}
+            onChange={() => setCloudinaryEnabled(!cloudinaryEnabled)}
+          >
+            {cloudinaryEnabled ? "Enabled" : "Disabled"}
+          </Switch>
+        </div>
+
+        <Paragraph style={{ color: "#536171", marginBottom: "16px" }}>
+          Enable Cloudinary integration to use a custom Cloudinary widget for
+          fields configured with the Cloudinary app. Enter your Cloudinary
+          credentials below.
+        </Paragraph>
+
+        {cloudinaryEnabled && (
+          <div
+            style={{
+              padding: "20px",
+              background: "#F7F9FA",
+              border: "1px solid #D3DAE6",
+              borderRadius: "6px",
+            }}
+          >
+            {/* Row 1: Cloud Name and API Key */}
+            <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label isRequired>Cloud Name</FormControl.Label>
+                <TextInput
+                  value={cloudinaryCloudName}
+                  onChange={(e) => setCloudinaryCloudName(e.target.value)}
+                  placeholder="Enter your Cloudinary cloud name"
+                />
+                <FormControl.HelpText>
+                  The Cloudinary cloud name that the app will connect to.
+                </FormControl.HelpText>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label isRequired>API Key</FormControl.Label>
+                <TextInput
+                  value={cloudinaryApiKey}
+                  onChange={(e) => setCloudinaryApiKey(e.target.value)}
+                  placeholder="Enter your Cloudinary API key"
+                />
+                <FormControl.HelpText>
+                  You can access the API key through Cloudinary's Access keys.
+                </FormControl.HelpText>
+              </FormControl>
+            </div>
+
+            {/* Row 2: API Secret and Max Files */}
+            <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>API Secret (write-only)</FormControl.Label>
+                <TextInput
+                  type="password"
+                  value={cloudinaryApiSecret}
+                  onChange={(e) => setCloudinaryApiSecret(e.target.value)}
+                  placeholder="Enter your Cloudinary API secret"
+                />
+                <FormControl.HelpText>
+                  The API secret can be found with the above corresponding API Key.
+                </FormControl.HelpText>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Max number of files</FormControl.Label>
+                <TextInput
+                  type="number"
+                  value={cloudinaryMaxFiles}
+                  onChange={(e) => setCloudinaryMaxFiles(e.target.value)}
+                  placeholder="10"
+                  min="1"
+                  max="1000"
+                />
+                <FormControl.HelpText>
+                  The max number of files that can be added to a single field. Must be between 1 and 1000.
+                </FormControl.HelpText>
+              </FormControl>
+            </div>
+
+            {/* Row 3: Starting Folder */}
+            <FormControl style={{ marginBottom: "16px" }}>
+              <FormControl.Label>Starting Folder</FormControl.Label>
+              <TextInput
+                value={cloudinaryStartingFolder}
+                onChange={(e) => setCloudinaryStartingFolder(e.target.value)}
+                placeholder="e.g. images, images/products"
+              />
+              <FormControl.HelpText>
+                Relative path to the folder which the Cloudinary Media Library will automatically browse to. Leave blank to open the root folder.
+              </FormControl.HelpText>
+            </FormControl>
+
+            {/* Row 4: Media Quality and Format */}
+            <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Media Quality</FormControl.Label>
+                <Select
+                  value={cloudinaryMediaQuality}
+                  onChange={(e) => setCloudinaryMediaQuality(e.target.value)}
+                >
+                  <Select.Option value="auto">auto</Select.Option>
+                  <Select.Option value="none">none</Select.Option>
+                  <Select.Option value="auto:low">auto:low</Select.Option>
+                  <Select.Option value="auto:eco">auto:eco</Select.Option>
+                  <Select.Option value="auto:good">auto:good</Select.Option>
+                  <Select.Option value="auto:best">auto:best</Select.Option>
+                  <Select.Option value="10">10</Select.Option>
+                  <Select.Option value="20">20</Select.Option>
+                  <Select.Option value="30">30</Select.Option>
+                  <Select.Option value="40">40</Select.Option>
+                  <Select.Option value="50">50</Select.Option>
+                  <Select.Option value="60">60</Select.Option>
+                  <Select.Option value="70">70</Select.Option>
+                  <Select.Option value="80">80</Select.Option>
+                  <Select.Option value="90">90</Select.Option>
+                  <Select.Option value="100">100</Select.Option>
+                </Select>
+                <FormControl.HelpText>
+                  The quality level of your assets. Set to 'auto' for optimized level, or 'none' for original.
+                </FormControl.HelpText>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Format</FormControl.Label>
+                <Select
+                  value={cloudinaryFormat}
+                  onChange={(e) => setCloudinaryFormat(e.target.value)}
+                >
+                  <Select.Option value="auto">auto</Select.Option>
+                  <Select.Option value="none">none</Select.Option>
+                  <Select.Option value="gif">gif</Select.Option>
+                  <Select.Option value="webp">webp</Select.Option>
+                  <Select.Option value="bmp">bmp</Select.Option>
+                  <Select.Option value="flif">flif</Select.Option>
+                  <Select.Option value="heif">heif</Select.Option>
+                  <Select.Option value="heic">heic</Select.Option>
+                  <Select.Option value="ico">ico</Select.Option>
+                  <Select.Option value="jpg">jpg</Select.Option>
+                  <Select.Option value="jpe">jpe</Select.Option>
+                  <Select.Option value="jpeg">jpeg</Select.Option>
+                  <Select.Option value="jp2">jp2</Select.Option>
+                  <Select.Option value="wdp">wdp</Select.Option>
+                  <Select.Option value="jxr">jxr</Select.Option>
+                  <Select.Option value="hdp">hdp</Select.Option>
+                  <Select.Option value="png">png</Select.Option>
+                  <Select.Option value="psd">psd</Select.Option>
+                  <Select.Option value="arw">arw</Select.Option>
+                  <Select.Option value="cr2">cr2</Select.Option>
+                  <Select.Option value="svg">svg</Select.Option>
+                  <Select.Option value="tga">tga</Select.Option>
+                  <Select.Option value="tif">tif</Select.Option>
+                  <Select.Option value="tiff">tiff</Select.Option>
+                </Select>
+                <FormControl.HelpText>
+                  The format of the assets. Set to 'auto' for optimized format, or 'none' for original.
+                </FormControl.HelpText>
+              </FormControl>
+            </div>
+
+            {/* Row 5: Checkboxes */}
+            <div style={{ marginBottom: "16px" }}>
+              <Checkbox
+                isChecked={cloudinaryShowUploadButton}
+                onChange={() => setCloudinaryShowUploadButton(!cloudinaryShowUploadButton)}
+              >
+                Show Upload Button
+              </Checkbox>
+              <Paragraph style={{ fontSize: "12px", color: "#6B7280", marginLeft: "24px", marginTop: "4px" }}>
+                Enable or disable the upload functionality. When checked, users will see an Upload button that allows them to add assets directly to your library.
+              </Paragraph>
+            </div>
+
+            <div style={{ marginBottom: "16px" }}>
+              <Checkbox
+                isChecked={cloudinaryShowOnlySelectButton}
+                onChange={() => setCloudinaryShowOnlySelectButton(!cloudinaryShowOnlySelectButton)}
+              >
+                Show only "Select an asset" button (hide image/video dropdown)
+              </Checkbox>
+              <Paragraph style={{ fontSize: "12px", color: "#6B7280", marginLeft: "24px", marginTop: "4px" }}>
+                When enabled, only the 'Select an asset' button is shown; the dropdown to choose image or video is hidden.
+              </Paragraph>
+            </div>
+
+            {cloudinaryEnabled && !cloudinaryCloudName && (
+              <Note variant="warning" style={{ marginTop: "16px" }}>
+                Please enter your Cloud Name to enable the Cloudinary widget.
+              </Note>
+            )}
           </div>
         )}
       </div>
