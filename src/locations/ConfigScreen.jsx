@@ -15,6 +15,7 @@ import {
   Switch,
 } from "@contentful/f36-components";
 import { useCMA, useSDK } from "@contentful/react-apps-toolkit";
+import { exportRules, triggerImport } from "../utils/rulesExportImport";
 
 const ConfigScreen = () => {
   const cma = useCMA();
@@ -509,6 +510,135 @@ const ConfigScreen = () => {
           </Button>
         </div>
 
+        {showForm && (
+          <div
+            style={{
+              marginBottom: "20px",
+              padding: "24px",
+              background: "#F7F9FA",
+              border: "1px solid #D3DAE6",
+              borderRadius: "6px",
+            }}
+          >
+            <Subheading style={{ marginBottom: "16px" }}>
+              {editingRuleIndex !== null ? "Edit Hide Rule" : "Add Hide Rule"}
+            </Subheading>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Content Type</FormControl.Label>
+                <Select
+                  value={selectedContentType}
+                  onChange={(e) => setSelectedContentType(e.target.value)}
+                >
+                  <Select.Option value="">Select a content type</Select.Option>
+                  {contentTypes.map((contentType) => (
+                    <Select.Option
+                      key={contentType.sys.id}
+                      value={contentType.sys.id}
+                    >
+                      {contentType.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Field to watch</FormControl.Label>
+                <Select
+                  value={selectedField?.id}
+                  onChange={(e) => {
+                    const field = fields.find((f) => f.id === e.target.value);
+                    setSelectedField(field);
+                  }}
+                >
+                  <Select.Option value="">Select a field</Select.Option>
+                  {fields.map((field) => (
+                    <Select.Option key={field.id} value={field.id}>
+                      {field.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Value to match</FormControl.Label>
+                {valueOptions.length > 0 ? (
+                  <Select
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                  >
+                    <Select.Option value="">Select a value</Select.Option>
+                    {valueOptions.map((option) => (
+                      <Select.Option key={option} value={option}>
+                        {option}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                ) : (
+                  <TextInput
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    placeholder="Enter value to match"
+                  />
+                )}
+              </FormControl>
+            </div>
+            <FormControl>
+              <FormControl.Label>Fields to hide</FormControl.Label>
+              <div
+                style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px" }}
+              >
+                {fields.map((field) => (
+                  <Checkbox
+                    key={field.id}
+                    id={field.id}
+                    isChecked={selectedTargets.includes(field.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedTargets([...selectedTargets, field.id]);
+                      } else {
+                        setSelectedTargets(
+                          selectedTargets.filter((id) => id !== field.id),
+                        );
+                      }
+                    }}
+                  >
+                    {field.name}
+                  </Checkbox>
+                ))}
+              </div>
+            </FormControl>
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <Button variant="primary" onClick={handleSaveRule}>
+                {editingRuleIndex !== null ? "Update Rule" : "Save Rule"}
+              </Button>
+              <Button variant="secondary" onClick={handleCancelEdit}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Import/Export buttons for Hide Rules */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "12px" }}>
+          <Button
+            size="small"
+            variant="secondary"
+            onClick={() => triggerImport(
+              (importedRules) => setRules([...rules, ...importedRules]),
+              (error) => setValidationError(error)
+            )}
+          >
+            Import Rules
+          </Button>
+          <Button
+            size="small"
+            variant="secondary"
+            onClick={() => exportRules(rules, 'hide-rules.json')}
+            isDisabled={rules.length === 0}
+          >
+            Export Rules
+          </Button>
+        </div>
+
         {rules.length === 0 ? (
           <div
             style={{
@@ -697,113 +827,6 @@ const ConfigScreen = () => {
             </Button>
           </div>
         )}
-
-        {showForm && (
-          <div
-            style={{
-              marginTop: "20px",
-              padding: "24px",
-              background: "#F7F9FA",
-              border: "1px solid #D3DAE6",
-              borderRadius: "6px",
-            }}
-          >
-            <Subheading style={{ marginBottom: "16px" }}>
-              {editingRuleIndex !== null ? "Edit Hide Rule" : "Add Hide Rule"}
-            </Subheading>
-            <div style={{ display: "flex", gap: "16px" }}>
-              <FormControl style={{ flex: 1 }}>
-                <FormControl.Label>Content Type</FormControl.Label>
-                <Select
-                  value={selectedContentType}
-                  onChange={(e) => setSelectedContentType(e.target.value)}
-                >
-                  <Select.Option value="">Select a content type</Select.Option>
-                  {contentTypes.map((contentType) => (
-                    <Select.Option
-                      key={contentType.sys.id}
-                      value={contentType.sys.id}
-                    >
-                      {contentType.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl style={{ flex: 1 }}>
-                <FormControl.Label>Field to watch</FormControl.Label>
-                <Select
-                  value={selectedField?.id}
-                  onChange={(e) => {
-                    const field = fields.find((f) => f.id === e.target.value);
-                    setSelectedField(field);
-                  }}
-                >
-                  <Select.Option value="">Select a field</Select.Option>
-                  {fields.map((field) => (
-                    <Select.Option key={field.id} value={field.id}>
-                      {field.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl style={{ flex: 1 }}>
-                <FormControl.Label>Value to match</FormControl.Label>
-                {valueOptions.length > 0 ? (
-                  <Select
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                  >
-                    <Select.Option value="">Select a value</Select.Option>
-                    {valueOptions.map((option) => (
-                      <Select.Option key={option} value={option}>
-                        {option}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                ) : (
-                  <TextInput
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder="Enter value to match"
-                  />
-                )}
-              </FormControl>
-            </div>
-            <FormControl>
-              <FormControl.Label>Fields to hide</FormControl.Label>
-              <div
-                style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px" }}
-              >
-                {fields.map((field) => (
-                  <Checkbox
-                    key={field.id}
-                    id={field.id}
-                    isChecked={selectedTargets.includes(field.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedTargets([...selectedTargets, field.id]);
-                      } else {
-                        setSelectedTargets(
-                          selectedTargets.filter((id) => id !== field.id),
-                        );
-                      }
-                    }}
-                  >
-                    {field.name}
-                  </Checkbox>
-                ))}
-              </div>
-            </FormControl>
-            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-              <Button variant="primary" onClick={handleSaveRule}>
-                {editingRuleIndex !== null ? "Update Rule" : "Save Rule"}
-              </Button>
-              <Button variant="secondary" onClick={handleCancelEdit}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── Help Text Rules Section ── */}
@@ -834,6 +857,141 @@ const ConfigScreen = () => {
             onClick={() => showEmptyHelpTextForm()}
           >
             + Add Help Text
+          </Button>
+        </div>
+
+        {showHelpTextForm && (
+          <div
+            style={{
+              marginBottom: "20px",
+              padding: "24px",
+              background: "#F7F9FA",
+              border: "1px solid #D3DAE6",
+              borderRadius: "6px",
+            }}
+          >
+            <Subheading style={{ marginBottom: "16px" }}>
+              {editingHelpTextIndex !== null
+                ? "Edit Help Text Rule"
+                : "Add Help Text Rule"}
+            </Subheading>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Content Type</FormControl.Label>
+                <Select
+                  value={helpTextContentType}
+                  onChange={(e) => setHelpTextContentType(e.target.value)}
+                >
+                  <Select.Option value="">Select a content type</Select.Option>
+                  {contentTypes.map((contentType) => (
+                    <Select.Option
+                      key={contentType.sys.id}
+                      value={contentType.sys.id}
+                    >
+                      {contentType.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Controlling Field</FormControl.Label>
+                <Select
+                  value={helpTextControllingField?.id}
+                  onChange={(e) => {
+                    const field = helpTextFields.find(
+                      (f) => f.id === e.target.value,
+                    );
+                    setHelpTextControllingField(field);
+                  }}
+                >
+                  <Select.Option value="">Select a field</Select.Option>
+                  {helpTextFields.map((field) => (
+                    <Select.Option key={field.id} value={field.id}>
+                      {field.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Value to match</FormControl.Label>
+                {helpTextValueOptions.length > 0 ? (
+                  <Select
+                    value={helpTextValue}
+                    onChange={(e) => setHelpTextValue(e.target.value)}
+                  >
+                    <Select.Option value="">Select a value</Select.Option>
+                    {helpTextValueOptions.map((option) => (
+                      <Select.Option key={option} value={option}>
+                        {option}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                ) : (
+                  <TextInput
+                    value={helpTextValue}
+                    onChange={(e) => setHelpTextValue(e.target.value)}
+                    placeholder="Enter value to match"
+                  />
+                )}
+              </FormControl>
+            </div>
+            <div style={{ display: "flex", gap: "16px" }}>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Target Field</FormControl.Label>
+                <Select
+                  value={helpTextTargetField}
+                  onChange={(e) => setHelpTextTargetField(e.target.value)}
+                >
+                  <Select.Option value="">Select a field</Select.Option>
+                  {helpTextFields.map((field) => (
+                    <Select.Option key={field.id} value={field.id}>
+                      {field.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl style={{ flex: 1 }}>
+                <FormControl.Label>Help Text</FormControl.Label>
+                <Textarea
+                  value={helpTextContent}
+                  onChange={(e) => setHelpTextContent(e.target.value)}
+                  placeholder="Enter help text to display under the target field..."
+                  rows={3}
+                />
+              </FormControl>
+            </div>
+            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
+              <Button variant="primary" onClick={handleSaveHelpText}>
+                {editingHelpTextIndex !== null
+                  ? "Update Help Text"
+                  : "Save Help Text"}
+              </Button>
+              <Button variant="secondary" onClick={handleCancelEditHelpText}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Import/Export buttons for Help Text Rules */}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "12px" }}>
+          <Button
+            size="small"
+            variant="secondary"
+            onClick={() => triggerImport(
+              (importedRules) => setHelpTextRules([...helpTextRules, ...importedRules]),
+              (error) => setValidationError(error)
+            )}
+          >
+            Import Rules
+          </Button>
+          <Button
+            size="small"
+            variant="secondary"
+            onClick={() => exportRules(helpTextRules, 'help-text-rules.json')}
+            isDisabled={helpTextRules.length === 0}
+          >
+            Export Rules
           </Button>
         </div>
 
@@ -1039,119 +1197,6 @@ const ConfigScreen = () => {
             >
               Disable Selected
             </Button>
-          </div>
-        )}
-
-        {showHelpTextForm && (
-          <div
-            style={{
-              marginTop: "20px",
-              padding: "24px",
-              background: "#F7F9FA",
-              border: "1px solid #D3DAE6",
-              borderRadius: "6px",
-            }}
-          >
-            <Subheading style={{ marginBottom: "16px" }}>
-              {editingHelpTextIndex !== null
-                ? "Edit Help Text Rule"
-                : "Add Help Text Rule"}
-            </Subheading>
-            <div style={{ display: "flex", gap: "16px" }}>
-              <FormControl style={{ flex: 1 }}>
-                <FormControl.Label>Content Type</FormControl.Label>
-                <Select
-                  value={helpTextContentType}
-                  onChange={(e) => setHelpTextContentType(e.target.value)}
-                >
-                  <Select.Option value="">Select a content type</Select.Option>
-                  {contentTypes.map((contentType) => (
-                    <Select.Option
-                      key={contentType.sys.id}
-                      value={contentType.sys.id}
-                    >
-                      {contentType.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl style={{ flex: 1 }}>
-                <FormControl.Label>Controlling Field</FormControl.Label>
-                <Select
-                  value={helpTextControllingField?.id}
-                  onChange={(e) => {
-                    const field = helpTextFields.find(
-                      (f) => f.id === e.target.value,
-                    );
-                    setHelpTextControllingField(field);
-                  }}
-                >
-                  <Select.Option value="">Select a field</Select.Option>
-                  {helpTextFields.map((field) => (
-                    <Select.Option key={field.id} value={field.id}>
-                      {field.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl style={{ flex: 1 }}>
-                <FormControl.Label>Value to match</FormControl.Label>
-                {helpTextValueOptions.length > 0 ? (
-                  <Select
-                    value={helpTextValue}
-                    onChange={(e) => setHelpTextValue(e.target.value)}
-                  >
-                    <Select.Option value="">Select a value</Select.Option>
-                    {helpTextValueOptions.map((option) => (
-                      <Select.Option key={option} value={option}>
-                        {option}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                ) : (
-                  <TextInput
-                    value={helpTextValue}
-                    onChange={(e) => setHelpTextValue(e.target.value)}
-                    placeholder="Enter value to match"
-                  />
-                )}
-              </FormControl>
-            </div>
-            <div style={{ display: "flex", gap: "16px" }}>
-              <FormControl style={{ flex: 1 }}>
-                <FormControl.Label>Target Field</FormControl.Label>
-                <Select
-                  value={helpTextTargetField}
-                  onChange={(e) => setHelpTextTargetField(e.target.value)}
-                >
-                  <Select.Option value="">Select a field</Select.Option>
-                  {helpTextFields.map((field) => (
-                    <Select.Option key={field.id} value={field.id}>
-                      {field.name}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl style={{ flex: 1 }}>
-                <FormControl.Label>Help Text</FormControl.Label>
-                <Textarea
-                  value={helpTextContent}
-                  onChange={(e) => setHelpTextContent(e.target.value)}
-                  placeholder="Enter help text to display under the target field..."
-                  rows={3}
-                />
-              </FormControl>
-            </div>
-            <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-              <Button variant="primary" onClick={handleSaveHelpText}>
-                {editingHelpTextIndex !== null
-                  ? "Update Help Text"
-                  : "Save Help Text"}
-              </Button>
-              <Button variant="secondary" onClick={handleCancelEditHelpText}>
-                Cancel
-              </Button>
-            </div>
           </div>
         )}
       </div>

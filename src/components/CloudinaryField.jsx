@@ -9,84 +9,128 @@ const CloudinaryIcon = memo(({ size = 20 }) => (
   </svg>
 ));
 
+// Drag handle icon component
+const DragHandleIcon = memo(() => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="5" cy="4" r="1.5" fill="#9CA3AF"/>
+    <circle cx="11" cy="4" r="1.5" fill="#9CA3AF"/>
+    <circle cx="5" cy="8" r="1.5" fill="#9CA3AF"/>
+    <circle cx="11" cy="8" r="1.5" fill="#9CA3AF"/>
+    <circle cx="5" cy="12" r="1.5" fill="#9CA3AF"/>
+    <circle cx="11" cy="12" r="1.5" fill="#9CA3AF"/>
+  </svg>
+));
+
 // Memoized AssetCard component for better performance
-const AssetCard = memo(({ asset, index, thumbnailUrl, fileName, dimensions, fileSize, onRemove }) => (
+const AssetCard = memo(({ asset, index, thumbnailUrl, fileName, dimensions, fileSize, onRemove, onDragStart, onDragOver, onDrop, onDragEnd, isDragging }) => (
   <div
+    draggable
+    onDragStart={(e) => onDragStart(e, index)}
+    onDragOver={onDragOver}
+    onDrop={(e) => onDrop(e, index)}
+    onDragEnd={onDragEnd}
     style={{
       position: "relative",
       display: "flex",
-      flexDirection: "column",
-      border: "1px solid #E5E5E5",
+      flexDirection: "row",
+      border: isDragging ? "2px dashed #3448C5" : "1px solid #E5E5E5",
       borderRadius: "6px",
-      background: "#fff",
+      background: isDragging ? "#F0F4FF" : "#fff",
       overflow: "visible",
+      opacity: isDragging ? 0.5 : 1,
+      transition: "border 0.2s, background 0.2s, opacity 0.2s",
     }}
   >
-    <button
-      onClick={() => onRemove(index)}
+    {/* Drag handle on left */}
+    <div
       style={{
-        position: "absolute",
-        top: "-10px",
-        right: "-10px",
-        width: "24px",
-        height: "24px",
-        borderRadius: "50%",
-        background: "#CF3D3D",
-        border: "2px solid #fff",
-        cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 0,
-        zIndex: 10,
-        boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-      }}
-      aria-label="Remove asset"
-    >
-      <CloseIcon size="tiny" variant="white" />
-    </button>
-    <div
-      style={{
-        width: "100%",
-        height: "140px",
-        position: "relative",
+        width: "32px",
+        minWidth: "32px",
         background: "#F7F9FA",
-        borderRadius: "6px 6px 0 0",
-        overflow: "hidden",
+        borderRight: "1px solid #E5E5E5",
+        borderRadius: "6px 0 0 6px",
+        cursor: "grab",
       }}
     >
-      {thumbnailUrl ? (
-        <img
-          src={thumbnailUrl}
-          alt={fileName}
-          loading="lazy"
-          decoding="async"
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
-      ) : (
-        <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <CloudinaryIcon size={40} />
-        </div>
-      )}
+      <DragHandleIcon />
     </div>
-    <div style={{ padding: "8px", borderTop: "1px solid #E5E5E5" }}>
+    
+    {/* Main content area */}
+    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      {/* Close button on top right */}
+      <button
+        onClick={() => onRemove(index)}
+        style={{
+          position: "absolute",
+          top: "-10px",
+          right: "-10px",
+          width: "24px",
+          height: "24px",
+          borderRadius: "50%",
+          background: "#CF3D3D",
+          border: "2px solid #fff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+          zIndex: 10,
+          boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+        }}
+        aria-label="Remove asset"
+      >
+        <CloseIcon size="tiny" variant="white" />
+      </button>
+      
+      {/* Image area */}
       <div
         style={{
-          fontSize: "13px",
-          fontWeight: 500,
-          color: "#192532",
+          width: "100%",
+          height: "140px",
+          position: "relative",
+          background: "#F7F9FA",
+          borderRadius: "0 6px 0 0",
           overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-          marginBottom: "4px",
         }}
-        title={fileName}
       >
-        {fileName}
+        {thumbnailUrl ? (
+          <img
+            src={thumbnailUrl}
+            alt={fileName}
+            loading="lazy"
+            decoding="async"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <CloudinaryIcon size={40} />
+          </div>
+        )}
       </div>
-      <div style={{ fontSize: "12px", color: "#6B7280", display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        {dimensions && <span>{dimensions}</span>}
-        {fileSize && <span>{fileSize}</span>}
+      
+      {/* Info at bottom */}
+      <div style={{ padding: "8px", borderTop: "1px solid #E5E5E5" }}>
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 500,
+            color: "#192532",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            marginBottom: "4px",
+          }}
+          title={fileName}
+        >
+          {fileName}
+        </div>
+        <div style={{ fontSize: "12px", color: "#6B7280", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {dimensions && <span>{dimensions}</span>}
+          {fileSize && <span>{fileSize}</span>}
+        </div>
       </div>
     </div>
   </div>
@@ -94,10 +138,9 @@ const AssetCard = memo(({ asset, index, thumbnailUrl, fileName, dimensions, file
 
 // Cache for Cloudinary script loading state
 let cloudinaryScriptPromise = null;
-let cloudinaryWidgetInstance = null;
 
 const loadCloudinaryScript = () => {
-  if (window.cloudinary) return Promise.resolve();
+  if (window.cloudinary?.createMediaLibrary) return Promise.resolve();
   if (cloudinaryScriptPromise) return cloudinaryScriptPromise;
   
   cloudinaryScriptPromise = new Promise((resolve, reject) => {
@@ -122,6 +165,7 @@ const CloudinaryField = ({ sdk, widgetId }) => {
     cloudinaryEnabled: sdk.parameters?.installation?.cloudinaryEnabled,
     cloudName: sdk.parameters?.installation?.cloudinaryCloudName,
     apiKey: sdk.parameters?.installation?.cloudinaryApiKey,
+    uploadPreset: sdk.parameters?.installation?.cloudinaryUploadPreset,
     maxFiles: sdk.parameters?.installation?.cloudinaryMaxFiles,
     startingFolder: sdk.parameters?.installation?.cloudinaryStartingFolder,
     mediaQuality: sdk.parameters?.installation?.cloudinaryMediaQuality,
@@ -131,7 +175,19 @@ const CloudinaryField = ({ sdk, widgetId }) => {
     searchFilter: sdk.parameters?.instance?.searchFilter || "",
   }), [sdk.parameters]);
 
-  const { cloudinaryEnabled, cloudName, apiKey, maxFiles, startingFolder, mediaQuality, format, showUploadButton, resourceType, searchFilter } = config;
+  const { 
+    cloudinaryEnabled, 
+    cloudName, 
+    apiKey,
+    uploadPreset, 
+    maxFiles, 
+    startingFolder, 
+    mediaQuality, 
+    format, 
+    showUploadButton, 
+    resourceType, 
+    searchFilter 
+  } = config;
 
   useEffect(() => {
     const detach = sdk.field.onValueChanged(setValue);
@@ -146,7 +202,7 @@ const CloudinaryField = ({ sdk, widgetId }) => {
       .catch((err) => console.error("Failed to load Cloudinary script:", err));
   }, [cloudinaryEnabled, cloudName]);
 
-  // Memoize widget config to avoid recreating on every render
+  // Memoize widget config for Media Library
   const widgetConfig = useMemo(() => {
     const cfg = {
       cloud_name: cloudName,
@@ -186,9 +242,19 @@ const CloudinaryField = ({ sdk, widgetId }) => {
     }
 
     return cfg;
-  }, [cloudName, apiKey, maxFiles, startingFolder, mediaQuality, format, resourceType, searchFilter, showUploadButton]);
+  }, [
+    cloudName, 
+    apiKey, 
+    maxFiles, 
+    startingFolder, 
+    mediaQuality, 
+    format, 
+    resourceType, 
+    searchFilter, 
+    showUploadButton
+  ]);
 
-  // Memoized insert handler
+  // Media Library insert handler
   const handleInsert = useCallback((data) => {
     if (data.assets?.length > 0) {
       const currentValue = sdk.field.getValue() || [];
@@ -200,17 +266,14 @@ const CloudinaryField = ({ sdk, widgetId }) => {
   }, [sdk.field]);
 
   const openCloudinaryPicker = useCallback(() => {
-    if (!window.cloudinary || !cloudName) return;
+    if (!window.cloudinary?.createMediaLibrary || !cloudName) return;
 
-    // Reuse existing widget instance if config hasn't changed
-    if (!widgetRef.current) {
-      widgetRef.current = window.cloudinary.createMediaLibrary(
-        widgetConfig,
-        { insertHandler: handleInsert }
-      );
-    }
+    const widget = window.cloudinary.createMediaLibrary(
+      widgetConfig,
+      { insertHandler: handleInsert }
+    );
 
-    widgetRef.current.show();
+    widget.show();
   }, [cloudName, widgetConfig, handleInsert]);
 
   const removeAsset = useCallback((indexToRemove) => {
@@ -222,6 +285,42 @@ const CloudinaryField = ({ sdk, widgetId }) => {
       sdk.field.removeValue();
     }
   }, [sdk.field]);
+
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
+  const handleDragStart = useCallback((e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const handleDrop = useCallback((e, dropIndex) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
+      return;
+    }
+
+    const currentValue = sdk.field.getValue();
+    if (!Array.isArray(currentValue)) return;
+
+    const newAssets = [...currentValue];
+    const [draggedItem] = newAssets.splice(draggedIndex, 1);
+    newAssets.splice(dropIndex, 0, draggedItem);
+    
+    sdk.field.setValue(newAssets);
+    setDraggedIndex(null);
+  }, [draggedIndex, sdk.field]);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedIndex(null);
+  }, []);
 
   // Memoized thumbnail URL generator
   const getAssetThumbnail = useCallback((asset) => {
@@ -276,12 +375,12 @@ const CloudinaryField = ({ sdk, widgetId }) => {
   }
 
   return (
-    <Stack flexDirection="column" spacing="spacingS">
+    <Stack flexDirection="column" spacing="spacingS" alignItems="flex-start">
       {hasAssets && (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3, 200px)",
+            gridTemplateColumns: "repeat(auto-fill, 232px)",
             gap: "16px",
             marginBottom: "16px",
             padding: "12px",
@@ -300,6 +399,11 @@ const CloudinaryField = ({ sdk, widgetId }) => {
               dimensions={asset.width && asset.height ? `${asset.width} × ${asset.height}` : ""}
               fileSize={formatFileSize(asset.bytes)}
               onRemove={removeAsset}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
+              isDragging={draggedIndex === index}
             />
           ))}
         </div>
