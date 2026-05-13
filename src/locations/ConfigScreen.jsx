@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Heading,
   Paragraph,
@@ -57,6 +57,36 @@ const ConfigScreen = () => {
   const [cloudinaryShowUploadButton, setCloudinaryShowUploadButton] = useState(true);
   const [cloudinaryShowOnlySelectButton, setCloudinaryShowOnlySelectButton] = useState(false);
 
+  const latestRules = useRef(rules);
+  const latestHelpTextRules = useRef(helpTextRules);
+  const latestSelectedContentType = useRef(selectedContentType);
+  const latestCloudinaryEnabled = useRef(cloudinaryEnabled);
+  const latestCloudinaryCloudName = useRef(cloudinaryCloudName);
+  const latestCloudinaryApiKey = useRef(cloudinaryApiKey);
+  const latestCloudinaryApiSecret = useRef(cloudinaryApiSecret);
+  const latestCloudinaryMaxFiles = useRef(cloudinaryMaxFiles);
+  const latestCloudinaryStartingFolder = useRef(cloudinaryStartingFolder);
+  const latestCloudinaryMediaQuality = useRef(cloudinaryMediaQuality);
+  const latestCloudinaryFormat = useRef(cloudinaryFormat);
+  const latestCloudinaryShowUploadButton = useRef(cloudinaryShowUploadButton);
+  const latestCloudinaryShowOnlySelectButton = useRef(cloudinaryShowOnlySelectButton);
+
+  useEffect(() => {
+    latestRules.current = rules;
+    latestHelpTextRules.current = helpTextRules;
+    latestSelectedContentType.current = selectedContentType;
+    latestCloudinaryEnabled.current = cloudinaryEnabled;
+    latestCloudinaryCloudName.current = cloudinaryCloudName;
+    latestCloudinaryApiKey.current = cloudinaryApiKey;
+    latestCloudinaryApiSecret.current = cloudinaryApiSecret;
+    latestCloudinaryMaxFiles.current = cloudinaryMaxFiles;
+    latestCloudinaryStartingFolder.current = cloudinaryStartingFolder;
+    latestCloudinaryMediaQuality.current = cloudinaryMediaQuality;
+    latestCloudinaryFormat.current = cloudinaryFormat;
+    latestCloudinaryShowUploadButton.current = cloudinaryShowUploadButton;
+    latestCloudinaryShowOnlySelectButton.current = cloudinaryShowOnlySelectButton;
+  });
+
   const onConfigure = useCallback(async () => {
     const parameters = await sdk.app.getParameters();
     if (parameters) {
@@ -110,7 +140,7 @@ const ConfigScreen = () => {
 
   useEffect(() => {
     const fetchContentTypes = async () => {
-      const contentTypes = await cma.contentType.getMany({});
+      const contentTypes = await cma.contentType.getMany({ limit: 1000 });
       setContentTypes(contentTypes.items);
     };
     fetchContentTypes();
@@ -118,27 +148,21 @@ const ConfigScreen = () => {
 
   useEffect(() => {
     if (selectedContentType) {
-      const fetchFields = async () => {
-        const contentType = await cma.contentType.get({
-          contentTypeId: selectedContentType,
-        });
-        setFields(contentType.fields);
-      };
-      fetchFields();
+      const ct = contentTypes.find((ct) => ct.sys.id === selectedContentType);
+      setFields(ct ? ct.fields : []);
+    } else {
+      setFields([]);
     }
-  }, [cma, selectedContentType]);
+  }, [selectedContentType, contentTypes]);
 
   useEffect(() => {
     if (helpTextContentType) {
-      const fetchFields = async () => {
-        const contentType = await cma.contentType.get({
-          contentTypeId: helpTextContentType,
-        });
-        setHelpTextFields(contentType.fields);
-      };
-      fetchFields();
+      const ct = contentTypes.find((ct) => ct.sys.id === helpTextContentType);
+      setHelpTextFields(ct ? ct.fields : []);
+    } else {
+      setHelpTextFields([]);
     }
-  }, [cma, helpTextContentType]);
+  }, [helpTextContentType, contentTypes]);
 
   useEffect(() => {
     if (editingFieldId && fields.length > 0) {
@@ -159,36 +183,6 @@ const ConfigScreen = () => {
       }
     }
   }, [helpTextFields, helpTextEditingFieldId]);
-
-  // Validation function
-  const validateBeforeSave = () => {
-    // Validate rules
-    for (const rule of rules) {
-      if (
-        !rule.contentType ||
-        !rule.conditions[0]?.field ||
-        !rule.conditions[0]?.value ||
-        rule.targets.length === 0
-      ) {
-        return "All rule fields must be filled. Please check your Show/Hide Rules.";
-      }
-    }
-
-    // Validate help text rules
-    for (const helpText of helpTextRules) {
-      if (
-        !helpText.contentType ||
-        !helpText.conditions[0]?.field ||
-        !helpText.conditions[0]?.value ||
-        !helpText.targetField ||
-        !helpText.helpText
-      ) {
-        return "All help text fields must be filled. Please check your Help Text Rules.";
-      }
-    }
-
-    return null;
-  };
 
   const handleSaveRule = () => {
     if (
@@ -394,12 +388,32 @@ const ConfigScreen = () => {
   useEffect(() => {
     sdk.app.onConfigure(async () => {
       const currentState = await sdk.app.getCurrentState();
+      const rules = latestRules.current;
+      const helpTextRules = latestHelpTextRules.current;
 
       // Validate before saving
-      const error = validateBeforeSave();
-      if (error) {
-        setValidationError(error);
-        return false; // Prevent save
+      for (const rule of rules) {
+        if (
+          !rule.contentType ||
+          !rule.conditions[0]?.field ||
+          !rule.conditions[0]?.value ||
+          rule.targets.length === 0
+        ) {
+          setValidationError("All rule fields must be filled. Please check your Show/Hide Rules.");
+          return false;
+        }
+      }
+      for (const helpText of helpTextRules) {
+        if (
+          !helpText.contentType ||
+          !helpText.conditions[0]?.field ||
+          !helpText.conditions[0]?.value ||
+          !helpText.targetField ||
+          !helpText.helpText
+        ) {
+          setValidationError("All help text fields must be filled. Please check your Help Text Rules.");
+          return false;
+        }
       }
 
       // Collect all content types that have rules or help text rules.
@@ -425,22 +439,22 @@ const ConfigScreen = () => {
         parameters: {
           rules: JSON.stringify(rules),
           helpTextRules: JSON.stringify(helpTextRules),
-          contentTypeId: selectedContentType,
-          cloudinaryEnabled,
-          cloudinaryCloudName,
-          cloudinaryApiKey,
-          cloudinaryApiSecret,
-          cloudinaryMaxFiles,
-          cloudinaryStartingFolder,
-          cloudinaryMediaQuality,
-          cloudinaryFormat,
-          cloudinaryShowUploadButton,
-          cloudinaryShowOnlySelectButton,
+          contentTypeId: latestSelectedContentType.current,
+          cloudinaryEnabled: latestCloudinaryEnabled.current,
+          cloudinaryCloudName: latestCloudinaryCloudName.current,
+          cloudinaryApiKey: latestCloudinaryApiKey.current,
+          cloudinaryApiSecret: latestCloudinaryApiSecret.current,
+          cloudinaryMaxFiles: latestCloudinaryMaxFiles.current,
+          cloudinaryStartingFolder: latestCloudinaryStartingFolder.current,
+          cloudinaryMediaQuality: latestCloudinaryMediaQuality.current,
+          cloudinaryFormat: latestCloudinaryFormat.current,
+          cloudinaryShowUploadButton: latestCloudinaryShowUploadButton.current,
+          cloudinaryShowOnlySelectButton: latestCloudinaryShowOnlySelectButton.current,
         },
         targetState: { EditorInterface: editorInterface },
       };
     });
-  }, [sdk.app, rules, helpTextRules, selectedContentType, cloudinaryEnabled, cloudinaryCloudName, cloudinaryApiKey, cloudinaryApiSecret, cloudinaryMaxFiles, cloudinaryStartingFolder, cloudinaryMediaQuality, cloudinaryFormat, cloudinaryShowUploadButton, cloudinaryShowOnlySelectButton]);
+  }, [sdk.app]);
 
   const valueOptions =
     selectedField?.items?.validations?.find((v) => v.in)?.in ||

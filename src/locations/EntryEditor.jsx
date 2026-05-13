@@ -62,43 +62,39 @@ const evaluateCondition = (actual, expected, operator) => {
 const EntryEditor = () => {
   const sdk = useSDK();
 
-  const [rules, setRules] = useState([]);
-  const [helpTextRules, setHelpTextRules] = useState([]);
-  const [controllerValues, setControllerValues] = useState({});
-
-  // Load rules from installation parameters (synchronous).
-  useEffect(() => {
+  const rules = useMemo(() => {
     try {
       const params = sdk.parameters.installation;
       const currentCt = sdk.contentType?.sys?.id;
-
-      if (params && params.rules) {
+      if (params?.rules) {
         const parsed = JSON.parse(params.rules);
         if (Array.isArray(parsed)) {
-          setRules(
-            parsed.filter(
-              (rule) =>
-                rule.contentType === currentCt && rule.enabled !== false,
-            ),
-          );
-        }
-      }
-
-      if (params && params.helpTextRules) {
-        const parsed = JSON.parse(params.helpTextRules);
-        if (Array.isArray(parsed)) {
-          setHelpTextRules(
-            parsed.filter(
-              (rule) =>
-                rule.contentType === currentCt && rule.enabled !== false,
-            ),
-          );
+          return parsed.filter((r) => r.contentType === currentCt && r.enabled !== false);
         }
       }
     } catch (err) {
-      console.error("Error parsing installation parameters:", err);
+      console.error("Error parsing rules:", err);
     }
-  }, [sdk]);
+    return [];
+  }, [sdk.parameters.installation, sdk.contentType]);
+
+  const helpTextRules = useMemo(() => {
+    try {
+      const params = sdk.parameters.installation;
+      const currentCt = sdk.contentType?.sys?.id;
+      if (params?.helpTextRules) {
+        const parsed = JSON.parse(params.helpTextRules);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((r) => r.contentType === currentCt && r.enabled !== false);
+        }
+      }
+    } catch (err) {
+      console.error("Error parsing helpTextRules:", err);
+    }
+    return [];
+  }, [sdk.parameters.installation, sdk.contentType]);
+
+  const [controllerValues, setControllerValues] = useState({});
 
   // Register listeners for controlling field changes across all locales.
   useEffect(() => {
@@ -287,7 +283,7 @@ const fieldSdkMap = useMemo(() => {
   });
 
   return map;
-}, [sdk]);
+}, [sdk.contentType, sdk.entry.fields]);
 
   // Determine which locales each field supports.
   const getFieldLocales = (fieldDef) => {

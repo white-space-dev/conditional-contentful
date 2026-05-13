@@ -67,7 +67,7 @@ const Field = () => {
       }
     };
     init();
-  }, [sdk.editor]);
+  }, [sdk.parameters.installation]);
 
   useEffect(() => {
     const currentFieldId = sdk.field.id;
